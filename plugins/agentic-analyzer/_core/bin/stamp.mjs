@@ -91,8 +91,9 @@ if (config.phase_c_hint === undefined) config.phase_c_hint = DEFAULT_PHASE_C_HIN
 if (typeof config.phase_c_hint !== "string") {
   stderr.write("phase_c_hint must be a string\n"); exit(1);
 }
-if (!Array.isArray(config.decision_enum) || config.decision_enum.length === 0) {
-  stderr.write("decision_enum must be a non-empty array\n"); exit(1);
+if (!Array.isArray(config.decision_enum) || config.decision_enum.length === 0
+    || !config.decision_enum.every(v => typeof v === "string" && v.length > 0)) {
+  stderr.write("decision_enum must be a non-empty array of non-empty strings\n"); exit(1);
 }
 if (!Array.isArray(config.rule_ids) || config.rule_ids.length === 0
     || !config.rule_ids.every(v => typeof v === "string" && v.length > 0)) {
@@ -213,7 +214,7 @@ try {
     // Checking the staging path is sufficient — the final path is produced
     // by the atomic rename from stagingDir to outDir, so any layout that
     // stays under stagingDir will stay under outDir after the swap.
-    if (!dstInStaging.startsWith(stagingPrefix) && dstInStaging !== stagingDir) {
+    if (!dstInStaging.startsWith(stagingPrefix)) {
       throw new Error(`path escape detected: ${dstRel}`);
     }
 
