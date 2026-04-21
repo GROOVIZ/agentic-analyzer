@@ -60,10 +60,10 @@ test("e2e: full scaffold for caches config produces every expected artifact", ()
       "SKILL.md",
       "prompts/discovery.md",
       "prompts/classification.md",
-      "analysis.schema.json",
-      "candidates.schema.json",
-      "coverage.schema.json",
-      "overrides.schema.json",
+      "schema/analysis.schema.json",
+      "schema/candidates.schema.json",
+      "schema/coverage.schema.json",
+      "schema/overrides.schema.json",
       "package.json"
     ]) {
       assert.ok(existsSync(join(out, f)), `missing: ${f}`);
@@ -106,7 +106,7 @@ test("e2e: stamped analysis.schema.json validates a minimal entry", async () => 
   const { dir, out, r } = scaffold(LOGGING_CONFIG);
   try {
     assert.equal(r.status, 0);
-    const schema = JSON.parse(readFileSync(join(out, "analysis.schema.json"), "utf8"));
+    const schema = JSON.parse(readFileSync(join(out, "schema/analysis.schema.json"), "utf8"));
     const ajv = new Ajv2020({ strict: true, allErrors: true });
     addFormats(ajv);
     const validate = ajv.compile(schema);
@@ -143,7 +143,7 @@ test("e2e: stamped overrides.schema.json validates a v2 entry with id-field=call
   const { dir, out, r } = scaffold(LOGGING_CONFIG);
   try {
     assert.equal(r.status, 0);
-    const schema = JSON.parse(readFileSync(join(out, "overrides.schema.json"), "utf8"));
+    const schema = JSON.parse(readFileSync(join(out, "schema/overrides.schema.json"), "utf8"));
     const ajv = new Ajv2020({ strict: true, allErrors: true });
     addFormats(ajv);
     const validate = ajv.compile(schema);

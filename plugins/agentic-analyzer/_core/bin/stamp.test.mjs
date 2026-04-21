@@ -169,7 +169,7 @@ test("stamp: preserves subdirectory structure", () => {
 });
 
 test("stamp: real analysis.schema template for caches produces valid JSON", () => {
-  const tplPath = join(here, "..", "templates", "analysis.schema.json.tmpl");
+  const tplPath = join(here, "..", "templates", "schema", "analysis.schema.json.tmpl");
   const dir = tmp();
   try {
     const cfg = join(dir, "config.json");
@@ -190,7 +190,7 @@ test("stamp: real analysis.schema template for caches produces valid JSON", () =
 });
 
 test("stamp: real candidates.schema template for logging produces valid JSON", () => {
-  const tplPath = join(here, "..", "templates", "candidates.schema.json.tmpl");
+  const tplPath = join(here, "..", "templates", "schema", "candidates.schema.json.tmpl");
   const dir = tmp();
   try {
     const cfg = join(dir, "config.json");
@@ -302,7 +302,7 @@ test("stamp: requires_context7=false softens the Context7 prereq", () => {
 });
 
 test("stamp: real overrides.schema template for logging produces valid JSON", () => {
-  const tplPath = join(here, "..", "templates", "overrides.schema.json.tmpl");
+  const tplPath = join(here, "..", "templates", "schema", "overrides.schema.json.tmpl");
   const dir = tmp();
   try {
     const cfg = join(dir, "config.json");
