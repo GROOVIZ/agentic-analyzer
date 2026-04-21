@@ -17,3 +17,6 @@ Thumbs.db
 
 # Scaffolded-analyzer run output (never committed by authors either)
 *-analysis/output/
+
+# Git worktrees
+.worktrees/
