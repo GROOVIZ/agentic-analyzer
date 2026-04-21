@@ -1,7 +1,7 @@
 {
   "name": "agentic-analyzer",
-  "version": "0.1.0",
-  "description": "Authoring kit for LLM-judged, schema-validated, replayable code analyzers. Scaffolds a domain-specific Claude Code skill from a seven-field config and ships a generic runtime (validator, snippet normalizer, fixture comparator, override-replay engine).",
+  "version": "0.2.0",
+  "description": "Authoring kit for LLM-judged, schema-validated, replayable code analyzers. Scaffolds a domain-specific Claude Code skill via an interactive `/new-analyzer` interview that drafts rules.md through a dispatched rule-author subagent, then stamps the skill from cross-platform templates. Ships four specialist subagents and a generic runtime (validator, snippet normalizer, fixture comparator, override-replay engine).",
   "author": {
     "name": "Thierry DE DOBBELEER",
     "email": "dev@grooviz.com"

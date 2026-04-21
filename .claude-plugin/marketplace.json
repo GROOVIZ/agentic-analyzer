@@ -9,8 +9,8 @@
   "plugins": [
     {
       "name": "agentic-analyzer",
-      "description": "Authoring kit: scaffolds new analyzer skills from a domain config. Ships four specialist subagents and a generic runtime (validator, snippet normalizer, fixture comparator, override-replay engine).",
-      "version": "0.1.0",
+      "description": "Authoring kit: scaffolds new analyzer skills via an interactive `/new-analyzer` interview that drafts rules.md through a dispatched rule-author subagent. Ships four specialist subagents and a generic runtime (validator, snippet normalizer, fixture comparator, override-replay engine).",
+      "version": "0.2.0",
       "source": "./plugins/agentic-analyzer",
       "author": {
         "name": "Thierry DE DOBBELEER",
