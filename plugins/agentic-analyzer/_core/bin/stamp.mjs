@@ -50,7 +50,9 @@ try { config = JSON.parse(readFileSync(flags.config, "utf8")); }
 catch (e) { stderr.write(`config parse: ${e.message}\n`); exit(1); }
 
 const required = ["analyzer_name", "entity_name_human", "entity_key", "id_field",
-                  "target_const", "decision_enum", "rule_ids"];
+                  "target_const", "decision_enum", "rule_ids",
+                  "language", "frameworks", "source_roots", "manifest_list",
+                  "target_question"];
 for (const k of required) {
   if (config[k] === undefined) { stderr.write(`config missing: ${k}\n`); exit(1); }
 }
@@ -65,6 +67,24 @@ if (!Array.isArray(config.decision_enum) || config.decision_enum.length === 0) {
 if (!Array.isArray(config.rule_ids) || config.rule_ids.length === 0
     || !config.rule_ids.every(v => typeof v === "string" && v.length > 0)) {
   stderr.write("rule_ids must be a non-empty array of non-empty strings\n"); exit(1);
+}
+if (typeof config.language !== "string" || !/^[a-z][a-z0-9+-]*$/.test(config.language)) {
+  stderr.write("language must match /^[a-z][a-z0-9+-]*$/\n"); exit(1);
+}
+if (!Array.isArray(config.frameworks)
+    || !config.frameworks.every(v => typeof v === "string" && v.length > 0)) {
+  stderr.write("frameworks must be an array of non-empty strings\n"); exit(1);
+}
+if (!Array.isArray(config.source_roots) || config.source_roots.length === 0
+    || !config.source_roots.every(v => typeof v === "string" && v.length > 0)) {
+  stderr.write("source_roots must be a non-empty array of non-empty strings\n"); exit(1);
+}
+if (!Array.isArray(config.manifest_list) || config.manifest_list.length === 0
+    || !config.manifest_list.every(v => typeof v === "string" && v.length > 0)) {
+  stderr.write("manifest_list must be a non-empty array of non-empty strings\n"); exit(1);
+}
+if (typeof config.target_question !== "string" || config.target_question.length === 0) {
+  stderr.write("target_question must be a non-empty string\n"); exit(1);
 }
 if (!/^[a-z][a-z0-9_-]*$/.test(config.analyzer_name)) {
   stderr.write("analyzer_name must be kebab/snake lower-case\n"); exit(1);

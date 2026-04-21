@@ -321,3 +321,49 @@ test("stamp: real overrides.schema template for logging produces valid JSON", ()
     assert.ok(parsed.properties.overrides.items.required.includes("call_site_id"));
   } finally { cleanup(dir); }
 });
+
+test("stamp: each new required key fails when omitted", () => {
+  const base = { ...LOGGING_CONFIG };
+  for (const key of ["language", "frameworks", "source_roots", "manifest_list", "target_question"]) {
+    const dir = tmp();
+    try {
+      const cfg = join(dir, "config.json");
+      const tdir = join(dir, "templates");
+      const out = join(dir, "out");
+      mkdirSync(tdir, { recursive: true });
+      const broken = { ...base };
+      delete broken[key];
+      writeFileSync(cfg, JSON.stringify(broken));
+      writeFileSync(join(tdir, "noop.tmpl"), "hi");
+      const r = run([`--config=${cfg}`, `--templates=${tdir}`, `--out=${out}`]);
+      assert.notEqual(r.status, 0, `omitting ${key} should fail`);
+      assert.match(r.stderr, new RegExp(`config missing: ${key}`), `stderr: ${r.stderr}`);
+    } finally { cleanup(dir); }
+  }
+});
+
+test("stamp: new array/string keys fail when empty or malformed", () => {
+  const cases = [
+    { key: "frameworks",      bad: "not-an-array", expect: /frameworks must be an array/ },
+    { key: "source_roots",    bad: [],             expect: /source_roots must be a non-empty array/ },
+    { key: "source_roots",    bad: [""],           expect: /source_roots must be a non-empty array of non-empty strings/ },
+    { key: "manifest_list",   bad: [],             expect: /manifest_list must be a non-empty array/ },
+    { key: "manifest_list",   bad: [42],           expect: /manifest_list must be a non-empty array of non-empty strings/ },
+    { key: "language",        bad: "Java",         expect: /language must match/ },
+    { key: "target_question", bad: "",             expect: /target_question must be a non-empty string/ }
+  ];
+  for (const c of cases) {
+    const dir = tmp();
+    try {
+      const cfg = join(dir, "config.json");
+      const tdir = join(dir, "templates");
+      const out = join(dir, "out");
+      mkdirSync(tdir, { recursive: true });
+      writeFileSync(cfg, JSON.stringify({ ...LOGGING_CONFIG, [c.key]: c.bad }));
+      writeFileSync(join(tdir, "noop.tmpl"), "hi");
+      const r = run([`--config=${cfg}`, `--templates=${tdir}`, `--out=${out}`]);
+      assert.notEqual(r.status, 0, `${c.key}=${JSON.stringify(c.bad)} should fail`);
+      assert.match(r.stderr, c.expect, `stderr: ${r.stderr}`);
+    } finally { cleanup(dir); }
+  }
+});
