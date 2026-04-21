@@ -5,7 +5,11 @@ and a set of concerns they raise in every iteration. When an iteration records
 "what each role thought", it draws from this roster.
 
 Real subagents (Explore, Plan, general-purpose, superpowers:code-reviewer,
-code-simplifier) are dispatched as tools when a role's work is heavy.
+code-simplifier) are dispatched as tools when a role's work is heavy. The
+`superpowers:*` and `code-simplifier` subagents ship in the `superpowers`
+and `code-simplifier` Claude Code plugins respectively; if those plugins
+aren't installed, the roster still documents the mapping but those
+particular invocations will not be available.
 
 | Persona | Role | Mandate | Signature concerns |
 |---|---|---|---|

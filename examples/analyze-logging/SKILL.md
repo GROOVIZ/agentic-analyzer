@@ -3,17 +3,13 @@ name: analyze-logging
 description: Discover, classify, and inventory every Log call-site in a target repository. Produces a schema-validated JSON inventory labeling each entry against a versioned ruleset, assuming target `pii-regulated`. Only invoke when the user explicitly requests logging analysis, inventory, or review.
 allowed-tools:
   - Read
+  - Write
   - Glob
   - Grep
-  - Bash(realpath *)
   - Bash(node *)
   - Bash(git *)
   - Bash(mkdir *)
-  - Bash(test *)
-  - Bash(cat *)
-  - Bash(printf *)
   - Bash(ls *)
-  - Bash(rm *)
   - mcp__plugin_serena_serena__*
   - mcp__plugin_context7_context7__*
 ---
@@ -26,17 +22,19 @@ The deployment target is fixed: **pii-regulated**. Record
 
 ## Step 1 — Preflight
 
-1. Resolve the argument `$1` to an absolute path. If `$1` is empty, use the
-   project root. Fail with a clear error if the path does not exist or is not
-   readable.
+1. Resolve the argument `$1` to an absolute path (use
+   `node -e "process.stdout.write(require('path').resolve(process.argv[1]))" "$1"`
+   or equivalent). If `$1` is empty, use the project root. Fail with a clear
+   error if the path does not exist or is not readable.
 2. Check Serena MCP availability. If Serena tools are not present, **stop immediately** with: *"Serena MCP is required. Install and enable the Serena plugin before running /analyze-logging."*
 3. If Serena is available, activate it on the target repository:
    `mcp__plugin_serena_serena__activate_project` with the absolute path. If
    activation fails, abort with Serena's error.
 4. Check Context7 MCP availability. If Context7 tools are not present, **stop immediately** with: *"Context7 MCP is required. Install and enable the Context7 plugin before running /analyze-logging."*
 5. Generate a run id: ISO-8601 UTC timestamp, colons replaced with dashes.
-6. Capture the previous run id if any:
-   `test -f logging-analysis/output/latest.txt && cat logging-analysis/output/latest.txt || printf ""`.
+6. Capture the previous run id if any — read
+   `logging-analysis/output/latest.txt` with the `Read` tool
+   if it exists; otherwise treat as empty.
 7. Create the output directory:
    `mkdir -p logging-analysis/output/runs/<run-id>`.
 
@@ -142,10 +140,14 @@ Re-validate `analysis.json` and `coverage.json` after the replay.
 
 ## Step 8 — Update latest.txt
 
+Write the run id to `logging-analysis/output/latest.txt` using the
+`Write` tool (overwriting any previous content). Then remove the
+intermediate phase files:
+
 ```
-printf '%s' '<run-id>' > logging-analysis/output/latest.txt
-rm -f logging-analysis/output/runs/<run-id>/_phaseA.json \
-      logging-analysis/output/runs/<run-id>/_phaseB.json
+node -e "for (const p of process.argv.slice(1)) { try { require('fs').unlinkSync(p); } catch (_) {} }" \
+  logging-analysis/output/runs/<run-id>/_phaseA.json \
+  logging-analysis/output/runs/<run-id>/_phaseB.json
 ```
 
 ## Step 9 — Summary
@@ -184,8 +186,11 @@ Output:
 
 `$SKILL_DIR` in the commands above refers to the directory of this
 `SKILL.md`. In a Claude Code session launched with `--add-dir` over the
-target repo, resolve it with `realpath "$(dirname "$0")"` or hard-code the
-path (`.claude/skills/analyze-logging`) depending on your install.
+target repo, either pass the skill dir explicitly as an argument or
+hard-code the path (`.claude/skills/analyze-logging`) depending
+on your install. Cross-platform path resolution via
+`node -e "process.stdout.write(require('path').resolve(process.argv[1]))"`
+works on any environment where `node` is available.
 
 Phase C is optional — if your domain has no ad-hoc or config-driven
 candidates (e.g., all entries are framework-annotation), delete Step 4.

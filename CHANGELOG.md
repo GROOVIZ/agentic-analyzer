@@ -30,6 +30,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `{{TARGET_QUESTION}}`, `{{IDENTITY_CONVENTION}}`, `{{PHASE_C_HINT}}`.
 - `discovery.md.tmpl` Phase A/B/C now embed concrete values instead of
   `*fill in for your domain*` placeholders.
+- Schemas now live under `_core/templates/schema/` and stamp into
+  `<skill>/schema/*.schema.json` directly — no post-stamp `mv` step.
+- `SKILL.md.tmpl` modernized for cross-platform execution: uses Claude's
+  `Read`/`Write` tools and `node -e` one-liners instead of
+  `realpath`/`test`/`cat`/`printf`/`rm`.
+- `stamp.mjs` `decision_enum` now validates per-element (each member must
+  be a non-empty string), matching the validation style of the new keys.
+- `_core/bin/replay-overrides.test.mjs` — new tests for the overrides
+  replay engine.
+- `marketplace.json` and `plugin.json` realigned with the upstream
+  Anthropic schema; URLs corrected from `example/` to `GROOVIZ/`.
+- Agent description rewording for consistency (4 specialist agents).
+- `_core/.gitignore` extended with `*.log`, `.DS_Store`, `Thumbs.db`.
 
 ### Removed
 
@@ -52,7 +65,7 @@ Initial release.
   domain-specific analyzer skill from a seven-field JSON config.
 - Four specialist subagents: `rule-author`, `schema-author`,
   `fixture-author`, `analyzer-reviewer`.
-- `_core/` runtime: seven Node CLIs with 71 unit tests.
+- `_core/` runtime: seven Node CLIs covered by `node --test`.
   - `validate.mjs` — JSON-Schema validator (Ajv 2020).
   - `normalize.mjs` — snippet normalizer (produces
     `snippet_normalized_sha256`, the override-replay identity key).
@@ -83,6 +96,6 @@ Initial release.
 - `/new-analyzer` extracts `analyzer_name` via argv-passthrough, not
   shell interpolation — no injection surface from config values.
 
-[Unreleased]: https://github.com/example/agentic-analyzer/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/example/agentic-analyzer/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/example/agentic-analyzer/releases/tag/v0.1.0
+[Unreleased]: https://github.com/GROOVIZ/agentic-analyzer/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/GROOVIZ/agentic-analyzer/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/GROOVIZ/agentic-analyzer/releases/tag/v0.1.0

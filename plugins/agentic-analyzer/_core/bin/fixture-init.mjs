@@ -52,7 +52,7 @@ writeFileSync(join(dir, ".gitignore"), [
 
 const expected = mode === "positive"
   ? {
-      "_comment": "Replace the stub row with the real expectation. Remove this key when done.",
+      "$comment": "Replace the stub row with the real expectation. Remove this key when done.",
       "expected": [{
         [idField]: "TODO:stable-id-string",
         "decision": "TODO:one-of-your-decision-enum",
@@ -60,7 +60,7 @@ const expected = mode === "positive"
       }]
     }
   : {
-      "_comment": "Negative fixture — the listed id must NOT appear in the analyzer's output (e.g., it was dropped by a triage rule). Remove this key when done.",
+      "$comment": "Negative fixture — the listed id must NOT appear in the analyzer's output (e.g., it was dropped by a triage rule). Remove this key when done.",
       "forbidden": [
         "TODO:stable-id-string-that-should-not-appear"
       ]
@@ -79,7 +79,7 @@ writeFileSync(join(dir, "README.md"), [
   "   the candidate this fixture exercises (usually 1–3 files).",
   "2. Edit `expected.json` — replace the TODO values with the real",
   `   \`${idField}\`, decision, and rule label.`,
-  "3. Delete the `_comment` field when the stubs are gone.",
+  "3. Delete the `$comment` field when the stubs are gone.",
   "4. Run the analyzer against `target/`, copy the resulting",
   "   `analysis.json` into `actual/`, and run the comparator:",
   "   ```",
@@ -93,5 +93,5 @@ writeFileSync(join(dir, "README.md"), [
 ].join("\n"));
 
 stdout.write(`initialized ${mode} fixture at ${dir}\n`);
-stdout.write("next: populate target/, edit expected.json (remove the _comment key and the TODO values), and run the analyzer.\n");
+stdout.write("next: populate target/, edit expected.json (remove the $comment key and the TODO values), and run the analyzer.\n");
 exit(0);

@@ -29,7 +29,7 @@ installed, from the plugin directory:
 
 ```
 npm --prefix _core install
-npm --prefix _core test     # 80 tests, all green
+npm --prefix _core test     # node --test, all green
 ```
 
 ## Scaffolding a new analyzer

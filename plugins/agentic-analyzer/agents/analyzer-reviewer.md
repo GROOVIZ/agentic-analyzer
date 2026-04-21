@@ -1,6 +1,6 @@
 ---
 name: analyzer-reviewer
-description: Adversarial reviewer for a scaffolded agentic-analyzer. Use after an analyzer has a full rule table, a set of fixtures, and at least one real analysis.json output. Looks for pattern-invariant violations, ambiguous rule boundaries, missing coverage, and sloppy identity schemes. Not a code reviewer — a pattern reviewer.
+description: Reviews a scaffolded agentic-analyzer adversarially. Use after an analyzer has a full rule table, a set of fixtures, and at least one real analysis.json output. Looks for pattern-invariant violations, ambiguous rule boundaries, missing coverage, and sloppy identity schemes. Not a code reviewer — a pattern reviewer.
 model: sonnet
 ---
 

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://agentic-analyzer.local/logging/overrides.schema.json",
+  "$id": "https://github.com/GROOVIZ/agentic-analyzer/schemas/logging/overrides.schema.json",
   "title": "Log call-site reviewer overrides (v2)",
   "type": "object",
   "additionalProperties": false,

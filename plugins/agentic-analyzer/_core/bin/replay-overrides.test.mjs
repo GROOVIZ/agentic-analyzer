@@ -316,3 +316,78 @@ test("replay: bad invocation exits 2 with usage", () => {
   assert.equal(r.status, 2);
   assert.match(r.stderr, /usage:/);
 });
+
+test("replay: unmatched[] entries can be lifted into coverage.degradations[] and pass coverage.schema.json", async () => {
+  const { default: Ajv2020 } = await import("ajv/dist/2020.js");
+  const { default: addFormats } = await import("ajv-formats");
+
+  const dir = tmp();
+  try {
+    const analysisPath  = join(dir, "analysis.json");
+    const overridesPath = join(dir, "overrides.json");
+
+    // One live entry. Two overrides: one hash-mismatched (orphan) and one
+    // missing id (malformed) — both should surface in unmatched[] with a
+    // reason the caller can copy into coverage.degradations[].
+    writeFileSync(analysisPath, JSON.stringify(makeAnalysis([
+      { cache_id: "A", decision: "remove", decision_source: "rule", rule_fired: "R1",
+        source: { snippet_normalized_sha256: HASH_A } }
+    ])));
+    writeFileSync(overridesPath, JSON.stringify({
+      schema_version: "2.0.0",
+      overrides: [
+        makeOverride({ id: "A", hash: HASH_B, decision: "retain" }),
+        { snippet_normalized_sha256: HASH_A, flagged: false, decision: "retain",
+          stage: "final", reviewer: "x@x", feedback: [], updated_at: "2026-04-21T00:00:00Z" }
+      ]
+    }));
+
+    const r = run([
+      `--analysis=${analysisPath}`,
+      `--overrides=${overridesPath}`,
+      "--entity-key=caches",
+      "--id-field=cache_id"
+    ]);
+    assert.equal(r.status, 0, r.stderr);
+
+    const report = JSON.parse(r.stdout);
+    assert.equal(report.matched, 0);
+    assert.equal(report.unmatched.length, 2);
+
+    // Caller-side transformation: unmatched[] → degradations[].
+    const degradations = report.unmatched.map(u => ({
+      stage: "override-replay",
+      reason: u.reason
+    }));
+
+    // Validate a synthesized coverage.json against the real coverage schema.
+    const coverageTpl = join(here, "..", "templates", "schema", "coverage.schema.json.tmpl");
+    const rawSchema = readFileSync(coverageTpl, "utf8")
+      .replace(/\{\{ANALYZER_NAME\}\}/g, "caches")
+      .replace(/\{\{ENTITY_NAME_HUMAN\}\}/g, "Cache");
+    const schema = JSON.parse(rawSchema);
+
+    const coverage = {
+      serena_available: true,
+      context7_available: true,
+      frameworks_surveyed: [],
+      files_visited: 0,
+      symbols_resolved: 0,
+      unresolved_symbols: [],
+      degradations
+    };
+
+    const ajv = new Ajv2020({ strict: true, allErrors: true });
+    addFormats(ajv);
+    const validate = ajv.compile(schema);
+    assert.ok(validate(coverage), JSON.stringify(validate.errors, null, 2));
+
+    // Each synthesized degradation must carry a non-empty reason and the
+    // documented "override-replay" stage.
+    for (const d of degradations) {
+      assert.equal(d.stage, "override-replay");
+      assert.ok(typeof d.reason === "string" && d.reason.length > 0,
+        "degradation reason must be a non-empty string");
+    }
+  } finally { cleanup(dir); }
+});

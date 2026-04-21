@@ -1,6 +1,6 @@
 # agentic-analyzer
 
-[![tests](https://img.shields.io/badge/tests-71%20passing-brightgreen)](./plugins/agentic-analyzer/_core/bin)
+[![tests](https://img.shields.io/badge/tests-green-brightgreen)](./plugins/agentic-analyzer/_core/bin)
 [![version](https://img.shields.io/badge/version-0.2.0-blue)](./CHANGELOG.md)
 [![license](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
@@ -63,7 +63,7 @@ Prerequisite: the plugin's `_core/` runtime needs Ajv:
 
 ```
 npm --prefix plugins/agentic-analyzer/_core install
-npm --prefix plugins/agentic-analyzer/_core test    # 80 tests, all green
+npm --prefix plugins/agentic-analyzer/_core test    # node --test, all green
 ```
 
 ## Start here
@@ -104,6 +104,13 @@ npm --prefix plugins/agentic-analyzer/_core test    # 80 tests, all green
 
 **Pre-1.0.** Schemas and CLI contracts may change before 1.0. Semver
 after 1.0.
+
+One load-bearing design choice to surface up front: an analyzer's
+`overrides.json` is a plain repo-local file. Concurrent edits across
+reviewers are the user's problem — the pattern does not attempt
+distributed locking. Teams that need that should stand up a small
+review app around the file rather than editing it by hand. See
+[`docs/pattern.md`](./docs/pattern.md) for the full rationale.
 
 ## Contributing
 

@@ -1,6 +1,6 @@
 ---
 name: rule-author
-description: Specialist for authoring the classification ruleset of a scaffolded agentic-analyzer. Use when a newly scaffolded analyzer has a skeletal rules.md and the author needs help turning a target question into a labeled, ordered rule table. Understands the invariants of the pattern (first-rule-wins, stable labels, separate evaluation order, confidence levels).
+description: Authors the classification ruleset for a scaffolded agentic-analyzer. Use when a newly scaffolded analyzer has a skeletal rules.md and the author needs help turning a target question into a labeled, ordered rule table. Understands the invariants of the pattern (first-rule-wins, stable labels, separate evaluation order, confidence levels).
 model: sonnet
 ---
 

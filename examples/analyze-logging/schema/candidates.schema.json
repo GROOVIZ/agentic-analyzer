@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://agentic-analyzer.local/logging/candidates.schema.json",
+  "$id": "https://github.com/GROOVIZ/agentic-analyzer/schemas/logging/candidates.schema.json",
   "title": "Log call-site candidates (intermediate discovery output)",
   "type": "object",
   "additionalProperties": false,

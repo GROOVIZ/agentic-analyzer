@@ -1,6 +1,6 @@
 ---
 name: schema-author
-description: Specialist for extending the base analyzer schemas with domain-specific fields. Use when an author scaffolded an analyzer with the generic base schemas and now needs to add domain-specific properties (TTLs, PII categories, flag-use frequency, etc.) without breaking the identity contract or the override-replay engine.
+description: Extends the base analyzer schemas with domain-specific fields. Use when an author scaffolded an analyzer with the generic base schemas and now needs to add domain-specific properties (TTLs, PII categories, flag-use frequency, etc.) without breaking the identity contract or the override-replay engine.
 model: sonnet
 ---
 

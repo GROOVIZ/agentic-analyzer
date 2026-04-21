@@ -11,7 +11,7 @@ plugin it offers:
 
 ```
 # Subscribe to the marketplace
-claude plugin marketplace add https://github.com/example/agentic-analyzer
+claude plugin marketplace add https://github.com/GROOVIZ/agentic-analyzer
 
 # Install the authoring-kit plugin
 claude plugin install agentic-analyzer@agentic-analyzer
@@ -23,7 +23,7 @@ claude plugin marketplace update agentic-analyzer
 ## Path 2 — Plain plugin install (single plugin, no subscription)
 
 ```
-claude plugin install https://github.com/example/agentic-analyzer/plugins/agentic-analyzer
+claude plugin install https://github.com/GROOVIZ/agentic-analyzer/plugins/agentic-analyzer
 ```
 
 Works if you only want the authoring kit and don't care about getting
@@ -35,9 +35,9 @@ Clone the repo wherever you prefer, then register the plugin path in
 your Claude Code settings:
 
 ```
-git clone https://github.com/example/agentic-analyzer.git /path/to/agentic-analyzer
+git clone https://github.com/GROOVIZ/agentic-analyzer.git /path/to/agentic-analyzer
 npm --prefix /path/to/agentic-analyzer/plugins/agentic-analyzer/_core install
-npm --prefix /path/to/agentic-analyzer/plugins/agentic-analyzer/_core test   # 80 tests
+npm --prefix /path/to/agentic-analyzer/plugins/agentic-analyzer/_core test
 ```
 
 In `settings.json` (user-global) or `settings.local.json` (per-project,

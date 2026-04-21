@@ -1,6 +1,6 @@
 ---
 name: fixture-author
-description: Specialist for authoring golden-fixture test cases for an agentic-analyzer. Use when the author needs a fixture to exercise a specific rule (happy-path, edge case, adversarial). Produces a minimal target directory plus an expected.json that the compare-fixture.mjs comparator validates against.
+description: Authors golden-fixture test cases for an agentic-analyzer. Use when the author needs a fixture to exercise a specific rule (happy-path, edge case, adversarial). Produces a minimal target directory plus an expected.json that the compare-fixture.mjs comparator validates against.
 model: sonnet
 ---
 

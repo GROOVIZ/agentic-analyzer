@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://agentic-analyzer.local/logging/coverage.schema.json",
+  "$id": "https://github.com/GROOVIZ/agentic-analyzer/schemas/logging/coverage.schema.json",
   "title": "Log call-site analysis coverage report",
   "type": "object",
   "additionalProperties": true,

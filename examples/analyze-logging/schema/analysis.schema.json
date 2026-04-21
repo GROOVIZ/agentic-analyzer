@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://agentic-analyzer.local/logging/analysis.schema.json",
+  "$id": "https://github.com/GROOVIZ/agentic-analyzer/schemas/logging/analysis.schema.json",
   "title": "Log call-site analysis result",
   "type": "object",
   "additionalProperties": true,

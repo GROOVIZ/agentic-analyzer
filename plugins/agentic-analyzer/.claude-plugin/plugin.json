@@ -7,8 +7,8 @@
     "email": "dev@grooviz.com"
   },
   "license": "MIT",
-  "homepage": "https://github.com/example/agentic-analyzer",
-  "repository": "https://github.com/example/agentic-analyzer",
+  "homepage": "https://github.com/GROOVIZ/agentic-analyzer",
+  "repository": "https://github.com/GROOVIZ/agentic-analyzer",
   "keywords": [
     "analyzer",
     "inventory",
@@ -17,7 +17,5 @@
     "code-analysis",
     "migration-review",
     "agentic"
-  ],
-  "commands": "./commands/",
-  "agents": "./agents/"
+  ]
 }
