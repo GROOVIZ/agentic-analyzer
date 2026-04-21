@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-04-21
+
+### Breaking
+
+- `/new-analyzer` no longer takes a `config.json` argument. Run it with an
+  optional target-root path; it interviews you for the rest. Any existing
+  `config.json` files are obsolete.
+- `stamp.mjs` required-key shape changed: `emittable_rule_ids` renamed to
+  `rule_ids`; new required keys `language`, `frameworks`, `source_roots`,
+  `manifest_list`, `target_question`.
+- `stamp.mjs` no longer produces `rules.md` — it's written directly by
+  `/new-analyzer` after dispatching the `rule-author` agent.
+
+### Added
+
+- `rule-author` agent gained a `MODE: dispatch` that returns a JSON envelope
+  `{ ruleset_version, rules_md, rule_ids, uncertainties }` consumed by
+  `/new-analyzer`.
+- New substitution tokens in templates: `{{LANGUAGE}}`, `{{FRAMEWORK_LIST}}`,
+  `{{FRAMEWORK_REGEX}}`, `{{MANIFEST_LIST}}`, `{{SOURCE_ROOTS}}`,
+  `{{TARGET_QUESTION}}`, `{{IDENTITY_CONVENTION}}`, `{{PHASE_C_HINT}}`.
+- `discovery.md.tmpl` Phase A/B/C now embed concrete values instead of
+  `*fill in for your domain*` placeholders.
+
+### Removed
+
+- `_core/templates/rules.md.tmpl`.
+- `examples/logging-config.json`.
+
 ## [0.1.0] — 2026-04-21
 
 Initial release.
@@ -54,5 +83,6 @@ Initial release.
 - `/new-analyzer` extracts `analyzer_name` via argv-passthrough, not
   shell interpolation — no injection surface from config values.
 
-[Unreleased]: https://github.com/example/agentic-analyzer/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/example/agentic-analyzer/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/example/agentic-analyzer/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/example/agentic-analyzer/releases/tag/v0.1.0
