@@ -18,7 +18,7 @@ import { parseArgs } from "./_args.mjs";
 //     "id_field":             "cache_id",
 //     "target_const":         "multi-replica-openshift",
 //     "decision_enum":        ["retain", "externalize", "remove"],
-//     "emittable_rule_ids":   ["R1","R2", ... ,"R11"]
+//     "rule_ids":             ["R1","R2", ... ,"R11"]
 //   }
 //
 // Placeholders derived from the config:
@@ -50,7 +50,7 @@ try { config = JSON.parse(readFileSync(flags.config, "utf8")); }
 catch (e) { stderr.write(`config parse: ${e.message}\n`); exit(1); }
 
 const required = ["analyzer_name", "entity_name_human", "entity_key", "id_field",
-                  "target_const", "decision_enum", "emittable_rule_ids"];
+                  "target_const", "decision_enum", "rule_ids"];
 for (const k of required) {
   if (config[k] === undefined) { stderr.write(`config missing: ${k}\n`); exit(1); }
 }
@@ -62,8 +62,9 @@ if (typeof config.requires_context7 !== "boolean") { stderr.write("requires_cont
 if (!Array.isArray(config.decision_enum) || config.decision_enum.length === 0) {
   stderr.write("decision_enum must be a non-empty array\n"); exit(1);
 }
-if (!Array.isArray(config.emittable_rule_ids) || config.emittable_rule_ids.length === 0) {
-  stderr.write("emittable_rule_ids must be a non-empty array\n"); exit(1);
+if (!Array.isArray(config.rule_ids) || config.rule_ids.length === 0
+    || !config.rule_ids.every(v => typeof v === "string" && v.length > 0)) {
+  stderr.write("rule_ids must be a non-empty array of non-empty strings\n"); exit(1);
 }
 if (!/^[a-z][a-z0-9_-]*$/.test(config.analyzer_name)) {
   stderr.write("analyzer_name must be kebab/snake lower-case\n"); exit(1);
@@ -95,8 +96,8 @@ const substitutions = {
   TARGET_CONST:           config.target_const,
   DECISION_ENUM_NO_NULL:  enumList(config.decision_enum),
   DECISION_ENUM_WITH_NULL:enumList(config.decision_enum, { withNull: true }),
-  RULE_IDS:               enumList(config.emittable_rule_ids),
-  RULE_IDS_WITH_NONE:     enumList([...config.emittable_rule_ids, "none"]),
+  RULE_IDS:               enumList(config.rule_ids),
+  RULE_IDS_WITH_NONE:     enumList([...config.rule_ids, "none"]),
   SERENA_PREREQ:          config.requires_serena   ? SERENA_HARD : SERENA_SOFT,
   CONTEXT7_PREREQ:        config.requires_context7 ? CTX7_HARD   : CTX7_SOFT
 };

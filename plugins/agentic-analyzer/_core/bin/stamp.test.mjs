@@ -20,7 +20,12 @@ const CACHES_CONFIG = {
   id_field: "cache_id",
   target_const: "multi-replica-openshift",
   decision_enum: ["retain", "externalize", "remove"],
-  emittable_rule_ids: ["R1","R2","R3","R4","R5","R6","R7","R8a","R8b","R9a","R9b","R10","R11"]
+  rule_ids: ["R1","R2","R3","R4","R5","R6","R7","R8a","R8b","R9a","R9b","R10","R11"],
+  language: "java",
+  frameworks: ["caffeine", "ehcache", "redis"],
+  source_roots: ["src/main/java"],
+  manifest_list: ["pom.xml", "build.gradle", "build.gradle.kts"],
+  target_question: "Is this cache safe on multi-replica OpenShift?"
 };
 
 const LOGGING_CONFIG = {
@@ -30,7 +35,12 @@ const LOGGING_CONFIG = {
   id_field: "call_site_id",
   target_const: "pii-regulated",
   decision_enum: ["allow", "redact", "remove"],
-  emittable_rule_ids: ["L1","L2","L3","L4"]
+  rule_ids: ["L1","L2","L3","L4"],
+  language: "java",
+  frameworks: ["slf4j", "logback"],
+  source_roots: ["src/main/java"],
+  manifest_list: ["pom.xml", "build.gradle", "build.gradle.kts"],
+  target_question: "Should this log call be allowed under PII rules?"
 };
 
 function scaffold(config, template) {
