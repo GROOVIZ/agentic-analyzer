@@ -58,7 +58,6 @@ test("e2e: full scaffold for caches config produces every expected artifact", ()
     assert.equal(r.status, 0, r.stderr);
     for (const f of [
       "SKILL.md",
-      "rules.md",
       "prompts/discovery.md",
       "prompts/classification.md",
       "analysis.schema.json",
@@ -69,6 +68,8 @@ test("e2e: full scaffold for caches config produces every expected artifact", ()
     ]) {
       assert.ok(existsSync(join(out, f)), `missing: ${f}`);
     }
+    assert.ok(!existsSync(join(out, "rules.md")),
+      "rules.md must NOT be produced by stamp (it is written by /new-analyzer)");
   } finally { cleanup(dir); }
 });
 
@@ -88,16 +89,6 @@ test("e2e: SKILL.md has placeholders fully resolved", () => {
   } finally { cleanup(dir); }
 });
 
-test("e2e: rules.md mentions the analyzer's decision set", () => {
-  const { dir, out, r } = scaffold(LOGGING_CONFIG);
-  try {
-    assert.equal(r.status, 0);
-    const rules = readFileSync(join(out, "rules.md"), "utf8");
-    assert.match(rules, /Log call-site Classification Rules/);
-    assert.match(rules, /"allow", "redact", "remove"/);
-    assert.doesNotMatch(rules, /\{\{[A-Z_]+\}\}/);
-  } finally { cleanup(dir); }
-});
 
 test("e2e: discovery prompt uses the scaffolded id field", () => {
   const { dir, out, r } = scaffold(LOGGING_CONFIG);
