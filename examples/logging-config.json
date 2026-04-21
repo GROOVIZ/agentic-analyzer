@@ -1,9 +1,0 @@
-{
-  "analyzer_name": "logging",
-  "entity_name_human": "Log call-site",
-  "entity_key": "entries",
-  "id_field": "call_site_id",
-  "target_const": "pii-regulated",
-  "decision_enum": ["allow", "redact", "remove"],
-  "emittable_rule_ids": ["L1", "L2", "L3", "L4", "L5"]
-}
