@@ -1,5 +1,7 @@
 # Log call-site Classification Rules
 
+**Note:** This skeleton was produced by agentic-analyzer v0.1.0 and references `emittable_rule_ids`, which was renamed to `rule_ids` in v0.2.0. Regenerate by running `/new-analyzer`.
+
 **Version:** `ruleset_version: "YYYY-MM-DD"` — update this when you change any rule.
 **Target (fixed):** pii-regulated.
 

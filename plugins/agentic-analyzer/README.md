@@ -29,7 +29,7 @@ installed, from the plugin directory:
 
 ```
 npm --prefix _core install
-npm --prefix _core test     # 71 tests, all green
+npm --prefix _core test     # 80 tests, all green
 ```
 
 ## Scaffolding a new analyzer
@@ -109,8 +109,8 @@ After scaffolding with `/new-analyzer`:
 
 ### Templates (`_core/templates/`)
 
-Seven `.tmpl` files: `SKILL.md`, `rules.md`, `prompts/discovery.md`,
-`prompts/classification.md`, and four schemas. Placeholders are
+Six `.tmpl` files: `SKILL.md`, `prompts/discovery.md`,
+`prompts/classification.md`, and four schemas. (`rules.md` is not a template — it's written by `/new-analyzer` directly from the `rule-author` dispatch envelope.) Placeholders are
 `{{UPPER_SNAKE}}` tokens (`[A-Z0-9_]+`); unknown tokens are a hard error.
 
 ## Worked example

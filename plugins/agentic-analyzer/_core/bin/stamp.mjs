@@ -11,28 +11,45 @@ import { parseArgs } from "./_args.mjs";
 // `.tmpl` suffix stripped.
 //
 // Config shape (validated inline):
-//   {
-//     "analyzer_name":        "caches",
-//     "entity_name_human":    "Cache",
-//     "entity_key":           "caches",
-//     "id_field":             "cache_id",
-//     "target_const":         "multi-replica-openshift",
-//     "decision_enum":        ["retain", "externalize", "remove"],
-//     "rule_ids":             ["R1","R2", ... ,"R11"]
-//   }
+//   Required (12):
+//     "analyzer_name"       — kebab/snake lower-case identifier for the analyzer
+//     "entity_name_human"   — human-readable entity name (e.g. "Cache")
+//     "entity_key"          — snake_case plural used as the JSON array key
+//     "id_field"            — snake_case field name that identifies each entity
+//     "target_const"        — the fixed "target" string stamped into schemas
+//     "decision_enum"       — non-empty array of decision strings (no null)
+//     "rule_ids"            — non-empty array of stable rule ID strings
+//     "language"            — primary language slug (e.g. "java", "typescript")
+//     "frameworks"          — array of framework/library names (may be empty)
+//     "source_roots"        — non-empty array of source root paths to scan
+//     "manifest_list"       — non-empty array of manifest file names
+//     "target_question"     — one-sentence question the analyzer answers
+//   Optional (with defaults):
+//     "requires_serena"       — boolean (default: true) — hard-fail if Serena absent
+//     "requires_context7"     — boolean (default: true) — hard-fail if Context7 absent
+//     "identity_convention"   — string (default: per-language pattern) — how entity IDs are formed
+//     "phase_c_hint"          — string (default prose) — config-driven candidate hint in SKILL.md
 //
 // Placeholders derived from the config:
-//   {{ANALYZER_NAME}}           caches
-//   {{ENTITY_NAME_HUMAN}}       Cache
-//   {{ENTITY_KEY}}              caches
-//   {{ID_FIELD}}                cache_id
-//   {{TARGET_CONST}}            multi-replica-openshift
-//   {{DECISION_ENUM_NO_NULL}}   "retain", "externalize", "remove"
-//   {{DECISION_ENUM_WITH_NULL}} "retain", "externalize", "remove", null
-//   {{RULE_IDS}}                "R1", "R2", ..., "R11"
-//   {{RULE_IDS_WITH_NONE}}      "R1", "R2", ..., "R11", "none"
-//   {{SERENA_PREREQ}}           SKILL.md paragraph — hard-fail or soft-degrade
-//   {{CONTEXT7_PREREQ}}         SKILL.md paragraph — hard-fail or soft-degrade
+//   {{ANALYZER_NAME}}           analyzer_name verbatim (e.g. "logging")
+//   {{ENTITY_NAME_HUMAN}}       entity_name_human verbatim (e.g. "Log call-site")
+//   {{ENTITY_KEY}}              entity_key verbatim (e.g. "entries")
+//   {{ID_FIELD}}                id_field verbatim (e.g. "call_site_id")
+//   {{TARGET_CONST}}            target_const verbatim (e.g. "pii-regulated")
+//   {{DECISION_ENUM_NO_NULL}}   quoted, comma-joined decision values without null
+//   {{DECISION_ENUM_WITH_NULL}} quoted, comma-joined decision values with trailing null
+//   {{RULE_IDS}}                quoted, comma-joined rule_ids
+//   {{RULE_IDS_WITH_NONE}}      quoted, comma-joined rule_ids plus "none"
+//   {{SERENA_PREREQ}}           SKILL.md prose paragraph — hard-fail or soft-degrade
+//   {{CONTEXT7_PREREQ}}         SKILL.md prose paragraph — hard-fail or soft-degrade
+//   {{LANGUAGE}}                language verbatim (e.g. "java")
+//   {{FRAMEWORK_LIST}}          quoted, comma-joined frameworks
+//   {{FRAMEWORK_REGEX}}         JS regex literal that matches any framework name
+//   {{MANIFEST_LIST}}           quoted, comma-joined manifest_list entries
+//   {{SOURCE_ROOTS}}            quoted, comma-joined source_roots entries
+//   {{TARGET_QUESTION}}         target_question verbatim (the one-sentence question)
+//   {{IDENTITY_CONVENTION}}     identity_convention verbatim or per-language default
+//   {{PHASE_C_HINT}}            phase_c_hint verbatim or default prose block
 //
 // Placeholder grammar is `{{[A-Z0-9_]+}}`. Unknown tokens are hard errors.
 //

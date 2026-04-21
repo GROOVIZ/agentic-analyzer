@@ -1,7 +1,7 @@
 # agentic-analyzer
 
 [![tests](https://img.shields.io/badge/tests-71%20passing-brightgreen)](./plugins/agentic-analyzer/_core/bin)
-[![version](https://img.shields.io/badge/version-0.1.0-blue)](./CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-0.2.0-blue)](./CHANGELOG.md)
 [![license](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
 A Claude Code **plugin marketplace** hosting plugins that implement or
@@ -63,7 +63,7 @@ Prerequisite: the plugin's `_core/` runtime needs Ajv:
 
 ```
 npm --prefix plugins/agentic-analyzer/_core install
-npm --prefix plugins/agentic-analyzer/_core test    # 71 tests, all green
+npm --prefix plugins/agentic-analyzer/_core test    # 80 tests, all green
 ```
 
 ## Start here
