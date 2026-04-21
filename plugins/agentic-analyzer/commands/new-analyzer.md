@@ -10,12 +10,8 @@ allowed-tools:
   - Grep
   - Task
   - Bash(node *)
-  - Bash(cp *)
-  - Bash(mkdir *)
-  - Bash(test *)
   - Bash(ls *)
   - Bash(pwd *)
-  - Bash(realpath *)
 ---
 
 You are the interactive scaffolder for the `agentic-analyzer` plugin. You
@@ -55,10 +51,11 @@ detected or chosen, apply the corresponding row.
 
 ### Step 1 — Preflight scan (silent)
 
-Resolve the argument. Use `realpath` if available, else a Node one-liner.
+Resolve the argument. Use the cross-platform Node one-liner so this works
+identically on POSIX and Windows.
 
 ```
-TARGET_ROOT=$(realpath "${1:-.}")
+TARGET_ROOT=$(node -e "process.stdout.write(require('path').resolve(process.argv[1]))" "${1:-.}")
 PLUGIN_ROOT="$CLAUDE_PLUGIN_ROOT"
 ```
 
@@ -221,9 +218,17 @@ string directly using string replacement — do NOT re-dispatch the
 subagent.
 
 When the user confirms ("looks good" / "stamp it"), extract the
-`rule_ids` from the final `rules_md` table (they must match the
-envelope's `rule_ids` field — if they diverge after user edits, parse
-the table as authoritative).
+`rule_ids` from the final `rules_md` table. The reconciliation policy
+has two phases:
+
+- **Initial dispatch return:** if the envelope's `rule_ids` field does
+  NOT match the IDs extracted from the table, that's a hard error in
+  the subagent's output — abort with a diff (per the spec's "Degraded
+  modes"), do not stamp.
+- **After user edits:** the user may add, remove, or rename rule IDs
+  inline. The table is authoritative from this point forward; the
+  envelope's `rule_ids` field is discarded. Re-extract from the table
+  and pass that list to `stamp.mjs`.
 
 ### Step 7 — Stamp + write rules.md + summary
 
@@ -269,17 +274,21 @@ After stamp succeeds, write `rules.md` directly using the `Write` tool:
 Write to $SKILL_DIR/rules.md with the resolved rules_md content.
 ```
 
-Copy runtime utilities verbatim (unchanged from the old command):
+Copy runtime utilities cross-platform via Node (avoids POSIX-only
+`cp`/`mkdir -p`):
 
 ```
-mkdir -p "$SKILL_DIR/bin"
-cp "$PLUGIN_ROOT/_core/bin/_args.mjs"                   "$SKILL_DIR/bin/"
-cp "$PLUGIN_ROOT/_core/bin/validate.mjs"                "$SKILL_DIR/bin/"
-cp "$PLUGIN_ROOT/_core/bin/normalize.mjs"               "$SKILL_DIR/bin/"
-cp "$PLUGIN_ROOT/_core/bin/compare-fixture.mjs"         "$SKILL_DIR/bin/"
-cp "$PLUGIN_ROOT/_core/bin/replay-overrides.mjs"        "$SKILL_DIR/bin/"
-cp "$PLUGIN_ROOT/_core/bin/migrate-overrides-v1-v2.mjs" "$SKILL_DIR/bin/"
-cp "$PLUGIN_ROOT/_core/bin/fixture-init.mjs"            "$SKILL_DIR/bin/"
+node -e "
+const fs = require('fs');
+const path = require('path');
+const [src, dst] = process.argv.slice(1);
+fs.mkdirSync(dst, { recursive: true });
+for (const f of ['_args.mjs', 'validate.mjs', 'normalize.mjs',
+                 'compare-fixture.mjs', 'replay-overrides.mjs',
+                 'migrate-overrides-v1-v2.mjs', 'fixture-init.mjs']) {
+  fs.copyFileSync(path.join(src, f), path.join(dst, f));
+}
+" "$PLUGIN_ROOT/_core/bin" "$SKILL_DIR/bin"
 ```
 
 Delete the tmp config.
