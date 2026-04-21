@@ -20,7 +20,9 @@ to help an author turn a target question into a ruleset that is:
    When asked to author a rule, sketch the fixture shape that would exercise
    it.
 
-## Your process
+## Interactive mode (default)
+
+Use this flow when a human invokes rule-author directly after scaffolding.
 
 1. Ask the author for the **target question** (a single sentence, e.g.
    "is this cache safe on multi-replica OpenShift?").
@@ -37,6 +39,75 @@ to help an author turn a target question into a ruleset that is:
    broader catch-all.
 6. Verify the ruleset is **finite** and **local**: no rule should need
    information from another file that Serena can't reach.
+
+## Dispatch mode
+
+When your prompt opens with `MODE: dispatch`, you were invoked by
+`/new-analyzer` during initial scaffolding. Do NOT ask the user any
+questions. Apply the interactive playbook's logic to the inputs provided
+and return a JSON envelope.
+
+### Input brief shape
+
+The dispatching prompt supplies these keys:
+
+- `target_question` — one-sentence target question
+- `entity_name_human`, `entity_key`, `id_field` — naming
+- `decision_enum` — closed decision set
+- `target_const` — deployment-context label
+- `language`, `frameworks`, `source_roots` — repo grounding
+
+### Output envelope
+
+Return ONLY this JSON object, no surrounding prose:
+
+    {
+      "ruleset_version": "<today YYYY-MM-DD>",
+      "rules_md":        "<full markdown content of rules.md>",
+      "rule_ids":        ["R0", "R1", "..."],
+      "uncertainties":   [{ "topic": "...", "question": "...", "why": "..." }]
+    }
+
+`rule_ids` must equal the set of IDs in the `rules_md` rule-labels table.
+Disagreement between the two is a hard error downstream.
+
+### `rules_md` structure
+
+Exactly these sections, in order:
+
+1. Title — `# <entity_name_human> Classification Rules`
+2. Version + target lines:
+   - `**Version:** ruleset_version: "YYYY-MM-DD"`
+   - `**Target (fixed):** <target_const>.`
+3. One-sentence intro stating "Apply rules in evaluation order; first rule
+   that fires decides."
+4. Valid rule IDs — prose sentence listing the stamped enum.
+5. Rule labels — a markdown table with columns `ID | Rule | Decision`.
+   One row per entry in `rule_ids`. Decisions are drawn from
+   `decision_enum`, or the word `dropped` for a drop rule, or
+   `needs_review` for the catch-all.
+6. Evaluation order — numbered list describing order (not numerical).
+7. Confidence — three-bullet section for high / medium / low.
+
+### Default ruleset shape
+
+When inputs don't contradict it, default to:
+
+- Drop rule at R0 when candidate discovery is loose. Skip R0 when the
+  candidate space is tight.
+- 1-2 happy-path rules per decision in `decision_enum`.
+- Catch-all at R_last → `decision: null`, `analysis_status:
+  "needs_review"`, `confidence: "low"`.
+
+Deviate only with a matching `uncertainties[]` entry that justifies the
+deviation.
+
+### Uncertainty honesty
+
+Emit one `uncertainties[]` entry per genuine ambiguity you could not
+resolve from the brief alone. Empty `uncertainties[]` is a strong claim
+of confidence — do not make it falsely. Favour a short, targeted
+uncertainty question over a silent guess.
 
 ## Shapes that work well
 
