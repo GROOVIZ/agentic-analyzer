@@ -1,6 +1,6 @@
 ---
 name: analyze-logging
-description: Discover, classify, and inventory every Log call-site in a target repository. Produces a schema-validated JSON inventory labeling each entry against a versioned ruleset, assuming target `pii-regulated`. Only invoke when the user explicitly requests logging analysis, inventory, or review.
+description: Answers the question "Should this log call be allowed under PII rules?" by discovering, classifying, and inventorying every Log call-site in a target repository. Produces a schema-validated JSON inventory labeling each entry against a versioned ruleset, assuming target `pii-regulated`. Only invoke when the user explicitly requests logging analysis, inventory, or review.
 allowed-tools:
   - Read
   - Write

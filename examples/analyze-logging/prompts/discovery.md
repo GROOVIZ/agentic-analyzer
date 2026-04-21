@@ -17,14 +17,15 @@ in the final output.
 
 ## Phase A — Framework survey (uses Context7)
 
-*Author task: list the libraries whose presence this analyzer should detect,
-and what to look up in their docs via Context7.*
+The declared frameworks for this analyzer are `["slf4j", "logback"]`. Phase A
+walks the target repo's build manifests, confirms which of these are in scope
+for the current repo, and pulls their Log call-site surfaces from
+Context7.
 
-1. List every build manifest in the target repo (`pom.xml`, `build.gradle`,
-   `package.json`, `Cargo.toml`, `requirements.txt`, `go.mod`, ...).
-2. Extract all declared dependencies.
-3. Apply a fast-path regex to dependency coordinates to pre-filter
-   (*fill in the regex for your domain — e.g., `/cache|caffeine|ehcache/i`*).
+1. List every build manifest in the target repo matching
+   `["pom.xml", "build.gradle", "build.gradle.kts"]`, restricted to source roots `["src/main/java"]`.
+2. Extract all declared dependencies from those manifests.
+3. Apply the fast-path coordinate regex `/(slf4j|logback)/i` to pre-filter.
 4. For each match, fetch the library's docs via Context7 and extract
    Log call-site surfaces:
    - `{ "kind": "annotation",  "fqn": "<fully-qualified-name>" }`
@@ -79,16 +80,15 @@ Output is `<raw>\t<normalized>`.
 
 ### Identity convention for `call_site_id`
 
-The ID must be stable across runs for the same source construct. A common
-convention: `<language>:<relative-path>:<enclosing-class>.<method>:<name>`.
-Pick a convention for your domain and document it here so reviewers and the
-override engine can rely on it.
+The ID must be stable across runs for the same source construct. For this
+analyzer: `<lang>:<rel>:<class>.<method>:<name>`. The override engine relies on this
+convention; changing it invalidates all existing overrides.
 
-## Phase C — Ad-hoc + config correlation (optional)
+## Phase C — Ad-hoc + config correlation
 
-Delete this section if your domain has no ad-hoc or config-driven candidates.
+No config-driven candidates detected at scaffold time. Delete this section if your domain has no ad-hoc or config-driven candidates; otherwise fill in what to correlate.
 
-Otherwise, describe:
+If this analyzer has config-driven or ad-hoc candidates, describe:
 
 - What "ad-hoc" means in your domain (e.g., bare `HashMap` fields, plain
   `System.out.println`, environment-variable reads).
