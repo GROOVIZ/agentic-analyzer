@@ -112,6 +112,11 @@ if (!/^[a-z_][a-z0-9_]*$/.test(config.id_field)) {
 const quote = s => `"${String(s).replace(/"/g, '\\"')}"`;
 const enumList = (arr, { withNull = false } = {}) =>
   [...arr.map(quote), ...(withNull ? ["null"] : [])].join(", ");
+const frameworkRegex = (frameworks) => {
+  if (!frameworks.length) return "/(?!)/i";
+  const alternation = frameworks.map(f => f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+  return `/(${alternation})/i`;
+};
 
 // Substitution blocks for the MCP-prereq paragraphs. These are prose
 // fragments injected into SKILL.md; the author can freely edit them
@@ -133,8 +138,14 @@ const substitutions = {
   RULE_IDS_WITH_NONE:     enumList([...config.rule_ids, "none"]),
   SERENA_PREREQ:          config.requires_serena   ? SERENA_HARD : SERENA_SOFT,
   CONTEXT7_PREREQ:        config.requires_context7 ? CTX7_HARD   : CTX7_SOFT,
+  LANGUAGE:               config.language,
+  FRAMEWORK_LIST:         enumList(config.frameworks),
+  FRAMEWORK_REGEX:        frameworkRegex(config.frameworks),
+  MANIFEST_LIST:          enumList(config.manifest_list),
+  SOURCE_ROOTS:           enumList(config.source_roots),
+  TARGET_QUESTION:        config.target_question,
   IDENTITY_CONVENTION:    config.identity_convention,
-  PHASE_C_HINT:           config.phase_c_hint,
+  PHASE_C_HINT:           config.phase_c_hint
 };
 
 function stamp(text) {

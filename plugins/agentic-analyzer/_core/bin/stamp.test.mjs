@@ -469,3 +469,49 @@ test("stamp: phase_c_hint accepts empty string (intentional asymmetry vs identit
     assert.match(content, /^hint: ''$/m);
   } finally { cleanup(dir); }
 });
+
+test("stamp: language/framework/manifest/source-root/target-question tokens substitute", () => {
+  const tpl = [
+    "language: {{LANGUAGE}}",
+    "frameworks: [{{FRAMEWORK_LIST}}]",
+    "regex: {{FRAMEWORK_REGEX}}",
+    "manifests: [{{MANIFEST_LIST}}]",
+    "source_roots: [{{SOURCE_ROOTS}}]",
+    "question: {{TARGET_QUESTION}}"
+  ].join("\n");
+  const dir = tmp();
+  try {
+    const cfg = join(dir, "config.json");
+    const tdir = join(dir, "templates");
+    const out = join(dir, "out");
+    mkdirSync(tdir, { recursive: true });
+    writeFileSync(cfg, JSON.stringify(LOGGING_CONFIG));
+    writeFileSync(join(tdir, "x.md.tmpl"), tpl);
+    const r = run([`--config=${cfg}`, `--templates=${tdir}`, `--out=${out}`]);
+    assert.equal(r.status, 0, r.stderr);
+    const content = readFileSync(join(out, "x.md"), "utf8");
+    assert.match(content, /language: java/);
+    assert.match(content, /frameworks: \["slf4j", "logback"\]/);
+    assert.match(content, /regex: \/\(slf4j\|logback\)\/i/);
+    assert.match(content, /manifests: \["pom\.xml", "build\.gradle", "build\.gradle\.kts"\]/);
+    assert.match(content, /source_roots: \["src\/main\/java"\]/);
+    assert.match(content, /question: Should this log call be allowed under PII rules\?/);
+  } finally { cleanup(dir); }
+});
+
+test("stamp: framework_regex emits a never-matching regex for an empty list", () => {
+  const tpl = `regex: {{FRAMEWORK_REGEX}}`;
+  const dir = tmp();
+  try {
+    const cfg = join(dir, "config.json");
+    const tdir = join(dir, "templates");
+    const out = join(dir, "out");
+    mkdirSync(tdir, { recursive: true });
+    writeFileSync(cfg, JSON.stringify({ ...LOGGING_CONFIG, frameworks: [] }));
+    writeFileSync(join(tdir, "x.md.tmpl"), tpl);
+    const r = run([`--config=${cfg}`, `--templates=${tdir}`, `--out=${out}`]);
+    assert.equal(r.status, 0, r.stderr);
+    const content = readFileSync(join(out, "x.md"), "utf8");
+    assert.match(content, /regex: \/\(\?!\)\/i/, content);
+  } finally { cleanup(dir); }
+});
