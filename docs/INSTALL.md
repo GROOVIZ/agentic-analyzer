@@ -37,7 +37,7 @@ your Claude Code settings:
 ```
 git clone https://github.com/example/agentic-analyzer.git /path/to/agentic-analyzer
 npm --prefix /path/to/agentic-analyzer/plugins/agentic-analyzer/_core install
-npm --prefix /path/to/agentic-analyzer/plugins/agentic-analyzer/_core test   # 71 tests
+npm --prefix /path/to/agentic-analyzer/plugins/agentic-analyzer/_core test   # 80 tests
 ```
 
 In `settings.json` (user-global) or `settings.local.json` (per-project,
@@ -77,16 +77,14 @@ To verify the four agents loaded:
 ## Running the scaffolder
 
 ```
-/agentic-analyzer:new-analyzer /path/to/your-domain-config.json
+/agentic-analyzer:new-analyzer
 ```
 
-Template configs live at:
-
-- `examples/logging-config.json` (PII-regulated log call-site analyzer)
-- `examples/caches-config.json` (the reference domain)
-
-Copy one, edit the seven required fields (plus the two optional
-`requires_*` booleans), and invoke.
+Run the command inside a Claude Code session with the target repo as
+cwd (or pass its path as `$1`). The command interviews you for the
+target question, naming, repo context, decisions, and the target label,
+then drafts `rules.md` via the `rule-author` subagent before stamping
+the skill. No config file is required.
 
 ## Uninstalling
 
