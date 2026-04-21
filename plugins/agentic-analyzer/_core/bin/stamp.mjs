@@ -56,11 +56,24 @@ const required = ["analyzer_name", "entity_name_human", "entity_key", "id_field"
 for (const k of required) {
   if (config[k] === undefined) { stderr.write(`config missing: ${k}\n`); exit(1); }
 }
+// Prose-block defaults for optional config keys.
+const DEFAULT_PHASE_C_HINT = "No config-driven candidates detected at scaffold time. Delete this section if your domain has no ad-hoc or config-driven candidates; otherwise fill in what to correlate.";
+
 // Optional, with documented defaults.
 if (config.requires_serena === undefined) config.requires_serena = true;
 if (config.requires_context7 === undefined) config.requires_context7 = true;
 if (typeof config.requires_serena !== "boolean") { stderr.write("requires_serena must be boolean\n"); exit(1); }
 if (typeof config.requires_context7 !== "boolean") { stderr.write("requires_context7 must be boolean\n"); exit(1); }
+if (config.identity_convention === undefined) {
+  config.identity_convention = "<lang>:<rel>:<class>.<method>:<name>";
+}
+if (typeof config.identity_convention !== "string" || config.identity_convention.length === 0) {
+  stderr.write("identity_convention must be a non-empty string\n"); exit(1);
+}
+if (config.phase_c_hint === undefined) config.phase_c_hint = DEFAULT_PHASE_C_HINT;
+if (typeof config.phase_c_hint !== "string") {
+  stderr.write("phase_c_hint must be a string\n"); exit(1);
+}
 if (!Array.isArray(config.decision_enum) || config.decision_enum.length === 0) {
   stderr.write("decision_enum must be a non-empty array\n"); exit(1);
 }
@@ -119,7 +132,9 @@ const substitutions = {
   RULE_IDS:               enumList(config.rule_ids),
   RULE_IDS_WITH_NONE:     enumList([...config.rule_ids, "none"]),
   SERENA_PREREQ:          config.requires_serena   ? SERENA_HARD : SERENA_SOFT,
-  CONTEXT7_PREREQ:        config.requires_context7 ? CTX7_HARD   : CTX7_SOFT
+  CONTEXT7_PREREQ:        config.requires_context7 ? CTX7_HARD   : CTX7_SOFT,
+  IDENTITY_CONVENTION:    config.identity_convention,
+  PHASE_C_HINT:           config.phase_c_hint,
 };
 
 function stamp(text) {

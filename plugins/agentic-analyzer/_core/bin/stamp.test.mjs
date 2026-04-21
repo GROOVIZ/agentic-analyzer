@@ -367,3 +367,105 @@ test("stamp: new array/string keys fail when empty or malformed", () => {
     } finally { cleanup(dir); }
   }
 });
+
+test("stamp: identity_convention defaults when omitted", () => {
+  const tpl = `convention: {{IDENTITY_CONVENTION}}`;
+  const dir = tmp();
+  try {
+    const cfg = join(dir, "config.json");
+    const tdir = join(dir, "templates");
+    const out = join(dir, "out");
+    mkdirSync(tdir, { recursive: true });
+    writeFileSync(cfg, JSON.stringify(LOGGING_CONFIG));
+    writeFileSync(join(tdir, "x.md.tmpl"), tpl);
+    const r = run([`--config=${cfg}`, `--templates=${tdir}`, `--out=${out}`]);
+    assert.equal(r.status, 0, r.stderr);
+    const content = readFileSync(join(out, "x.md"), "utf8");
+    assert.match(content, /<lang>:<rel>:<class>\.<method>:<name>/);
+  } finally { cleanup(dir); }
+});
+
+test("stamp: identity_convention honours an explicit value", () => {
+  const tpl = `convention: {{IDENTITY_CONVENTION}}`;
+  const dir = tmp();
+  try {
+    const cfg = join(dir, "config.json");
+    const tdir = join(dir, "templates");
+    const out = join(dir, "out");
+    mkdirSync(tdir, { recursive: true });
+    writeFileSync(cfg, JSON.stringify({ ...LOGGING_CONFIG, identity_convention: "py:<rel>:<module>.<func>" }));
+    writeFileSync(join(tdir, "x.md.tmpl"), tpl);
+    const r = run([`--config=${cfg}`, `--templates=${tdir}`, `--out=${out}`]);
+    assert.equal(r.status, 0, r.stderr);
+    const content = readFileSync(join(out, "x.md"), "utf8");
+    assert.match(content, /py:<rel>:<module>\.<func>/);
+  } finally { cleanup(dir); }
+});
+
+test("stamp: phase_c_hint defaults when omitted", () => {
+  const tpl = `hint: {{PHASE_C_HINT}}`;
+  const dir = tmp();
+  try {
+    const cfg = join(dir, "config.json");
+    const tdir = join(dir, "templates");
+    const out = join(dir, "out");
+    mkdirSync(tdir, { recursive: true });
+    writeFileSync(cfg, JSON.stringify(LOGGING_CONFIG));
+    writeFileSync(join(tdir, "x.md.tmpl"), tpl);
+    const r = run([`--config=${cfg}`, `--templates=${tdir}`, `--out=${out}`]);
+    assert.equal(r.status, 0, r.stderr);
+    const content = readFileSync(join(out, "x.md"), "utf8");
+    assert.match(content, /no config-driven candidates detected/i);
+  } finally { cleanup(dir); }
+});
+
+test("stamp: identity_convention rejects empty string and non-string", () => {
+  for (const bad of ["", 42, null]) {
+    const dir = tmp();
+    try {
+      const cfg = join(dir, "config.json");
+      const tdir = join(dir, "templates");
+      const out = join(dir, "out");
+      mkdirSync(tdir, { recursive: true });
+      writeFileSync(cfg, JSON.stringify({ ...LOGGING_CONFIG, identity_convention: bad }));
+      writeFileSync(join(tdir, "x.tmpl"), "x");
+      const r = run([`--config=${cfg}`, `--templates=${tdir}`, `--out=${out}`]);
+      assert.notEqual(r.status, 0, `identity_convention=${JSON.stringify(bad)} should fail`);
+      assert.match(r.stderr, /identity_convention must be a non-empty string/, `stderr: ${r.stderr}`);
+    } finally { cleanup(dir); }
+  }
+});
+
+test("stamp: phase_c_hint rejects non-string", () => {
+  for (const bad of [42, null, ["array"]]) {
+    const dir = tmp();
+    try {
+      const cfg = join(dir, "config.json");
+      const tdir = join(dir, "templates");
+      const out = join(dir, "out");
+      mkdirSync(tdir, { recursive: true });
+      writeFileSync(cfg, JSON.stringify({ ...LOGGING_CONFIG, phase_c_hint: bad }));
+      writeFileSync(join(tdir, "x.tmpl"), "x");
+      const r = run([`--config=${cfg}`, `--templates=${tdir}`, `--out=${out}`]);
+      assert.notEqual(r.status, 0, `phase_c_hint=${JSON.stringify(bad)} should fail`);
+      assert.match(r.stderr, /phase_c_hint must be a string/, `stderr: ${r.stderr}`);
+    } finally { cleanup(dir); }
+  }
+});
+
+test("stamp: phase_c_hint accepts empty string (intentional asymmetry vs identity_convention)", () => {
+  const tpl = `hint: '{{PHASE_C_HINT}}'`;
+  const dir = tmp();
+  try {
+    const cfg = join(dir, "config.json");
+    const tdir = join(dir, "templates");
+    const out = join(dir, "out");
+    mkdirSync(tdir, { recursive: true });
+    writeFileSync(cfg, JSON.stringify({ ...LOGGING_CONFIG, phase_c_hint: "" }));
+    writeFileSync(join(tdir, "x.md.tmpl"), tpl);
+    const r = run([`--config=${cfg}`, `--templates=${tdir}`, `--out=${out}`]);
+    assert.equal(r.status, 0, r.stderr);
+    const content = readFileSync(join(out, "x.md"), "utf8");
+    assert.match(content, /^hint: ''$/m);
+  } finally { cleanup(dir); }
+});
