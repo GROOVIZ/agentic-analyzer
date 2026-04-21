@@ -1,0 +1,17 @@
+{
+  "name": "@agentic-analyzer/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared runtime for agentic-analyzer skills: schema validator, snippet normalizer, fixture comparator, override-replay engine.",
+  "scripts": {
+    "test": "node --test bin/*.test.mjs"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

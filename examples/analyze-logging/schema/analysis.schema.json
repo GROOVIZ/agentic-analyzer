@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic-analyzer.local/logging/analysis.schema.json",
+  "title": "Log call-site analysis result",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version", "ruleset_version", "run_id", "target",
+    "repository", "coverage_ref", "entries"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "ruleset_version": { "type": "string" },
+    "run_id": { "type": "string" },
+    "target": { "const": "pii-regulated" },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "commit"],
+      "properties": {
+        "path": { "type": "string" },
+        "commit": { "type": "string" }
+      }
+    },
+    "coverage_ref": { "type": "string" },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "call_site_id", "name", "source", "decision", "decision_source",
+          "rule_fired", "rationale", "confidence", "analysis_status"
+        ],
+        "properties": {
+          "call_site_id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "source": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["file", "line_start", "line_end", "snippet", "snippet_sha256", "snippet_normalized_sha256"],
+            "properties": {
+              "file": { "type": "string" },
+              "line_start": { "type": "integer", "minimum": 1 },
+              "line_end": { "type": "integer", "minimum": 1 },
+              "snippet": { "type": "string" },
+              "snippet_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+              "snippet_normalized_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+            }
+          },
+          "decision": { "enum": ["allow", "redact", "remove", null] },
+          "decision_source": { "enum": ["rule", "override"] },
+          "rule_fired": { "enum": ["L1", "L2", "L3", "L4", "L5", "none"] },
+          "rationale": { "type": "string" },
+          "confidence": { "enum": ["high", "medium", "low"] },
+          "analysis_status": { "enum": ["complete", "partial", "needs_review"] }
+        }
+      }
+    }
+  }
+}

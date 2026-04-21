@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic-analyzer.local/{{ANALYZER_NAME}}/coverage.schema.json",
+  "title": "{{ENTITY_NAME_HUMAN}} analysis coverage report",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "serena_available",
+    "context7_available",
+    "frameworks_surveyed",
+    "files_visited",
+    "symbols_resolved",
+    "unresolved_symbols",
+    "degradations"
+  ],
+  "properties": {
+    "serena_available":   { "type": "boolean" },
+    "context7_available": { "type": "boolean" },
+    "plugin_versions": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "frameworks_surveyed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["library", "surfaces_count"],
+        "properties": {
+          "library":        { "type": "string" },
+          "version_seen":   { "type": "string" },
+          "surfaces_count": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "files_visited":        { "type": "integer", "minimum": 0 },
+    "symbols_resolved":     { "type": "integer", "minimum": 0 },
+    "unresolved_symbols":   { "type": "array", "items": { "type": "string" } },
+    "unsupported":          { "type": "array", "items": { "type": "string" } },
+    "degradations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["stage", "reason"],
+        "properties": {
+          "stage":  { "enum": ["context7", "serena", "phase-a", "phase-b", "phase-c", "classification", "override-replay", "other"] },
+          "reason": { "type": "string" },
+          "library":{ "type": "string" }
+        }
+      }
+    }
+  }
+}

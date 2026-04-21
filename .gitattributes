@@ -1,0 +1,8 @@
+# Normalise everything to LF. Windows hooks / shebangs / node scripts all
+# break under CRLF. See https://github.com/anthropics/claude-code/issues/25711.
+* text=auto eol=lf
+
+# Binary assets (none shipped today; future-proofing).
+*.png binary
+*.jpg binary
+*.ico binary

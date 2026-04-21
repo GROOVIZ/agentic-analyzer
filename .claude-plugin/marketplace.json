@@ -1,0 +1,18 @@
+{
+  "name": "agentic-analyzer",
+  "owner": {
+    "name": "Thierry DE DOBBELEER",
+    "email": "dev@grooviz.com"
+  },
+  "metadata": {
+    "description": "Plugins that implement or support the agentic-analyzer pattern — LLM-judged, schema-validated, replayable code analyzers.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "agentic-analyzer",
+      "source": "./plugins/agentic-analyzer",
+      "description": "Authoring kit: scaffolds new analyzer skills from a domain config. Ships four specialist subagents and a generic runtime (validator, snippet normalizer, fixture comparator, override-replay engine)."
+    }
+  ]
+}

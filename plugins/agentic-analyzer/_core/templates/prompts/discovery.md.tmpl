@@ -1,0 +1,103 @@
+# Discovery prompt (Phase A/B/C)
+
+You are conducting the discovery phase of {{ANALYZER_NAME}} analysis on a
+target repository.
+
+Produce a single JSON object conforming to `schema/candidates.schema.json`:
+
+```json
+{
+  "frameworks": [ ... ],
+  "candidates": [ ... ]
+}
+```
+
+Emit only the JSON object. No prose, no commentary, no markdown code fences
+in the final output.
+
+## Phase A — Framework survey (uses Context7)
+
+*Author task: list the libraries whose presence this analyzer should detect,
+and what to look up in their docs via Context7.*
+
+1. List every build manifest in the target repo (`pom.xml`, `build.gradle`,
+   `package.json`, `Cargo.toml`, `requirements.txt`, `go.mod`, ...).
+2. Extract all declared dependencies.
+3. Apply a fast-path regex to dependency coordinates to pre-filter
+   (*fill in the regex for your domain — e.g., `/cache|caffeine|ehcache/i`*).
+4. For each match, fetch the library's docs via Context7 and extract
+   {{ENTITY_NAME_HUMAN}} surfaces:
+   - `{ "kind": "annotation",  "fqn": "<fully-qualified-name>" }`
+   - `{ "kind": "builder",     "fqn": "<fully-qualified-name>" }`
+   - `{ "kind": "config_key",  "key": "<dotted.config.key>" }`
+   - `{ "kind": "api_call",    "fqn": "<method-fqn>" }`
+5. If Context7 returns no record for a library, add a `degradations[]` entry
+   to the coverage report (stage `"context7"`, library, reason).
+6. Record each surveyed library in the `frameworks[]` array.
+
+## Phase B — Symbolic enumeration (uses Serena)
+
+For every `surfaces[*]` record produced in Phase A:
+
+- **Annotations / API calls** → call
+  `mcp__plugin_serena_serena__find_symbol` by FQN, then
+  `mcp__plugin_serena_serena__find_referencing_symbols` to collect every
+  annotated or calling site.
+- **Builder classes** → call `find_symbol` + `find_referencing_symbols` for
+  every call site.
+- **Config keys** → defer to Phase C.
+
+For each hit:
+
+- Issue a targeted `Read` for a 30-line window around the symbol range
+  returned by Serena. Never read a full file unless it is under 200 lines.
+- Construct a candidate:
+
+```json
+{
+  "{{ID_FIELD}}": "<stable identity — see below>",
+  "name": "<short human name>",
+  "description": "<one-line summary>",
+  "source": {
+    "file": "<relative-path>",
+    "line_start": 42,
+    "line_end": 72,
+    "snippet": "<30-line window>",
+    "snippet_sha256": "<sha256 of raw snippet>",
+    "snippet_normalized_sha256": "<sha256 of normalized snippet>"
+  }
+}
+```
+
+Compute the hashes by piping the snippet through the normalizer:
+
+```
+printf '%s' "$SNIPPET" | node $SKILL_DIR/bin/normalize.mjs
+```
+
+Output is `<raw>\t<normalized>`.
+
+### Identity convention for `{{ID_FIELD}}`
+
+The ID must be stable across runs for the same source construct. A common
+convention: `<language>:<relative-path>:<enclosing-class>.<method>:<name>`.
+Pick a convention for your domain and document it here so reviewers and the
+override engine can rely on it.
+
+## Phase C — Ad-hoc + config correlation (optional)
+
+Delete this section if your domain has no ad-hoc or config-driven candidates.
+
+Otherwise, describe:
+
+- What "ad-hoc" means in your domain (e.g., bare `HashMap` fields, plain
+  `System.out.println`, environment-variable reads).
+- The shape gate that separates real candidates from false positives.
+- How config files (e.g., `application.yml`, `logback.xml`, `.env`) are
+  parsed and correlated with symbolic candidates.
+- Redaction rules for secret-like values.
+
+Merge by identity: if a Phase C candidate has the same `{{ID_FIELD}}` as a
+Phase B candidate, keep Phase B and discard the Phase C duplicate (but
+preserve the Phase C `config_refs[]` on the surviving entry if you model
+that).

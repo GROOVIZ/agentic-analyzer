@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic-analyzer.local/logging/overrides.schema.json",
+  "title": "Log call-site reviewer overrides (v2)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "overrides"],
+  "properties": {
+    "schema_version": { "const": "2.0.0" },
+    "overrides": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "call_site_id", "snippet_normalized_sha256",
+          "flagged", "decision", "stage",
+          "reviewer", "feedback", "updated_at"
+        ],
+        "properties": {
+          "call_site_id": { "type": "string" },
+          "snippet_normalized_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "flagged": { "type": "boolean" },
+          "decision": { "enum": ["allow", "redact", "remove", null] },
+          "stage": { "enum": ["tentative", "final", null] },
+          "reviewer": { "type": "string" },
+          "feedback": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["author", "body", "created_at"],
+              "properties": {
+                "author": { "type": "string", "minLength": 1 },
+                "body": { "type": "string", "minLength": 1 },
+                "created_at": { "type": "string", "format": "date-time" }
+              }
+            }
+          },
+          "confidence": { "enum": ["high", "medium", "low"] },
+          "updated_at": { "type": "string", "format": "date-time" }
+        },
+        "allOf": [
+          {
+            "description": "stage must be null iff decision is null",
+            "anyOf": [
+              { "properties": { "decision": { "type": "null" }, "stage": { "type": "null" } } },
+              {
+                "properties": {
+                  "decision": { "enum": ["allow", "redact", "remove"] },
+                  "stage":    { "enum": ["tentative", "final"] }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

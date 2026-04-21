@@ -1,0 +1,19 @@
+# Node
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Local Claude Code state (per-user)
+.claude/settings.local.json
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*~
+
+# Scaffolded-analyzer run output (never committed by authors either)
+*-analysis/output/

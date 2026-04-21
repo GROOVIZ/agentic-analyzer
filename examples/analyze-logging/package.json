@@ -1,0 +1,17 @@
+{
+  "name": "analyze-logging",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Log call-site analysis skill scaffolded by agentic-analyzer.",
+  "scripts": {
+    "test": "node --test bin/*.test.mjs"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
