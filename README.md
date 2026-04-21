@@ -23,7 +23,7 @@ lives at [`docs/PATTERN-CARD.md`](./docs/PATTERN-CARD.md).
 
 | Plugin | Role | Status |
 |---|---|---|
-| [`agentic-analyzer`](./plugins/agentic-analyzer) | **Authoring kit.** Scaffolds new analyzer skills from a domain config. Ships four specialist subagents and the generic `_core/` runtime. | 0.1.0 |
+| [`agentic-analyzer`](./plugins/agentic-analyzer) | **Authoring kit.** Scaffolds new analyzer skills via an interactive `/new-analyzer` interview. Ships four specialist subagents and the generic `_core/` runtime. | 0.1.0 |
 
 Pre-built analyzers (caches, logging, feature flags, session state,
 ...) are planned. Each new plugin lands as a `plugins/<name>/`
@@ -74,7 +74,7 @@ npm --prefix plugins/agentic-analyzer/_core test    # 71 tests, all green
    cheat-sheet to keep open while authoring.
 3. Read the authoring-kit plugin's README:
    [`plugins/agentic-analyzer/README.md`](./plugins/agentic-analyzer/README.md).
-   The five-minute tutorial from config → running analyzer is there.
+   The interactive `/new-analyzer` workflow and next steps are there.
 
 ## Worked example
 

@@ -1,8 +1,8 @@
 # agentic-analyzer plugin
 
-The authoring kit. Scaffolds a new domain-specific analyzer skill from
-a seven-field config, ships four specialist subagents, and provides the
-`_core/` runtime (validator, snippet normalizer, fixture comparator,
+The authoring kit. Scaffolds a new domain-specific analyzer skill via
+an interactive interview, ships four specialist subagents, and provides
+the `_core/` runtime (validator, snippet normalizer, fixture comparator,
 override-replay engine).
 
 **Part of the `agentic-analyzer` marketplace** — see the
@@ -32,47 +32,36 @@ npm --prefix _core install
 npm --prefix _core test     # 71 tests, all green
 ```
 
-## The five minutes from scratch to a running analyzer
+## Scaffolding a new analyzer
 
-1. **Write a domain config** — a JSON file with seven required fields
-   (see [`../../examples/logging-config.json`](../../examples/logging-config.json)):
+Run `/new-analyzer` inside a Claude Code session with the target repo as
+the working directory (or pass its path as the first argument). The
+command interviews you:
 
-   ```json
-   {
-     "analyzer_name":      "logging",
-     "entity_name_human":  "Log call-site",
-     "entity_key":         "entries",
-     "id_field":           "call_site_id",
-     "target_const":       "pii-regulated",
-     "decision_enum":      ["allow", "redact", "remove"],
-     "emittable_rule_ids": ["L1", "L2", "L3", "L4", "L5"]
-   }
-   ```
+1. The target question (one sentence).
+2. Confirm derived naming (analyzer_name, entity, id_field).
+3. Confirm scanned repo context (language, source roots, frameworks).
+4. Pick a decision set and target_const.
 
-   Two optional booleans control MCP prereqs: `requires_serena`
-   (default `true`) and `requires_context7` (default `true`). Set
-   either to `false` for analyzers that can degrade gracefully.
+`/new-analyzer` then dispatches the `rule-author` agent to draft
+`rules.md`, surfaces any uncertainties it flagged, and stamps the
+skill at `.claude/skills/analyze-<name>/`.
 
-2. **Scaffold** in a Claude Code session:
+Next step after scaffolding is always `/fixture-author` — the scaffold
+ships with zero fixtures.
 
-   ```
-   /agentic-analyzer:new-analyzer /path/to/logging-config.json
-   ```
+## From scaffold to a running analyzer
 
-   The command stamps a new skill at
-   `.claude/skills/analyze-logging/` with schemas, rule skeleton,
-   prompts skeleton, runtime utilities, and a `package.json`. Atomic:
-   failure leaves no partial state; refuses to clobber an existing dir.
+After scaffolding with `/new-analyzer`:
 
-3. **Populate the skeleton** (the creative core):
+1. **Populate the skeleton** (the creative core):
 
-   - Fill in `rules.md` with the domain's rule table and evaluation
-     order. Delegate to the `rule-author` subagent for guidance.
+   - Review `rules.md` drafted by `rule-author` and refine as needed.
    - Fill in `prompts/discovery.md` with the libraries to probe and
      your identity convention. The `schema-author` subagent helps
      if you want to extend the base analysis schema.
 
-4. **Seed a fixture** per rule. From the scaffolded skill dir:
+2. **Seed a fixture** per rule. From the scaffolded skill dir:
 
    ```
    node bin/fixture-init.mjs \
@@ -84,7 +73,7 @@ npm --prefix _core test     # 71 tests, all green
    (minimal target tree, one rule per fixture, `forbidden[]` for
    drop-rule coverage).
 
-5. **Run** in a Claude Code session with the Serena + Context7 MCP
+3. **Run** in a Claude Code session with the Serena + Context7 MCP
    plugins enabled:
 
    ```
