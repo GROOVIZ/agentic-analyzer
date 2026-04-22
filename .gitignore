@@ -7,6 +7,9 @@ yarn-error.log
 # Local Claude Code state (per-user)
 .claude/settings.local.json
 
+# Serena MCP per-project working state (cache + memories)
+.serena/
+
 # Editor / OS
 .DS_Store
 Thumbs.db
