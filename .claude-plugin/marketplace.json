@@ -9,8 +9,8 @@
   "plugins": [
     {
       "name": "agentic-analyzer",
-      "description": "Authoring kit: scaffolds new analyzer skills via an interactive `/new-analyzer` interview (with fixture auto-gen + post-stamp quality gate) and a companion `/expected-entities` command for feeding dev-team oracle lists into the Phase C.2 discovery backstop. Stamped analyzers record per-entity property bags (Phase D side-effect + Phase D.5 consolidation). Ships five specialist subagents and a generic runtime (validators, normalizer, comparators, replay engine).",
-      "version": "0.3.0",
+      "description": "Authoring kit: scaffolds new analyzer skills via an interactive `/new-analyzer` interview (with fixture auto-gen + post-stamp quality gate) and a companion `/expected-entities` command for feeding dev-team oracle lists into the Phase C.2 discovery backstop. Oracle-driven discovery combines framework-expansion (step 4) with role-based expansion (step 5, tier-gated LLM inference via the `role-inferencer` subagent). Stamped analyzers record per-entity property bags (Phase D side-effect + Phase D.5 consolidation). Ships six specialist subagents and a generic runtime (validators, normalizer, comparators, replay engine).",
+      "version": "0.4.0",
       "source": "./plugins/agentic-analyzer",
       "author": {
         "name": "Thierry DE DOBBELEER",

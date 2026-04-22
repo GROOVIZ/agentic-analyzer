@@ -1,7 +1,7 @@
 {
   "name": "agentic-analyzer",
-  "version": "0.3.0",
-  "description": "Authoring kit for LLM-judged, schema-validated, replayable code analyzers. Scaffolds a domain-specific Claude Code skill via an interactive `/new-analyzer` interview that drafts rules.md through a dispatched rule-author subagent, auto-generates one fixture stub per rule, optionally seeds a dev-team expected-entities oracle, and gates success on a post-stamp validator. Stamped analyzers record per-entity property bags (Phase D side-effect + Phase D.5 consolidation) and consult the oracle to backstop discovery with within-run framework expansion. Ships five specialist subagents, a companion `/expected-entities` command, and a generic runtime (schema validator, scaffold validator, snippet normalizer, fixture comparator, oracle comparator, override-replay engine).",
+  "version": "0.4.0",
+  "description": "Authoring kit for LLM-judged, schema-validated, replayable code analyzers. Scaffolds a domain-specific Claude Code skill via an interactive `/new-analyzer` interview that drafts rules.md through a dispatched rule-author subagent, auto-generates one fixture stub per rule, optionally seeds a dev-team expected-entities oracle, and gates success on a post-stamp validator. Stamped analyzers record per-entity property bags (Phase D side-effect + Phase D.5 consolidation) and consult the oracle to backstop discovery with within-run framework expansion AND role-based expansion — a dispatch-only `role-inferencer` subagent proposes tier-gated search strategies that find entities playing the same role as oracle samples. Ships six specialist subagents, companion `/expected-entities` command, and a generic runtime (schema validator, scaffold validator, snippet normalizer, fixture comparator, oracle comparator, override-replay engine).",
   "author": {
     "name": "Thierry DE DOBBELEER",
     "email": "dev@grooviz.com"
