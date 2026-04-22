@@ -46,7 +46,8 @@
         "properties": {
           "stage":  { "enum": ["context7", "serena", "phase-a", "phase-a-gap", "phase-b", "phase-c", "phase-c-expansion", "classification", "override-replay", "other"] },
           "reason": { "type": "string" },
-          "library":{ "type": "string" }
+          "library":{ "type": "string" },
+          "strategy_type": { "enum": ["framework", "annotation", "call_pattern", "name_pattern", "path_pattern", "combination"] }
         }
       }
     }

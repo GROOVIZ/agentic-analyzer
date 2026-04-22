@@ -381,6 +381,41 @@ test("e2e: stamped coverage.schema.json accepts phase-c-expansion in degradation
   } finally { cleanup(dir); }
 });
 
+test("e2e: stamped coverage.schema.json accepts phase-c-expansion with strategy_type field", async () => {
+  const { default: Ajv2020 } = await import("ajv/dist/2020.js");
+  const { default: addFormats } = await import("ajv-formats");
+  const { dir, out, r } = scaffold(LOGGING_CONFIG);
+  try {
+    assert.equal(r.status, 0);
+    const schema = JSON.parse(readFileSync(join(out, "schema/coverage.schema.json"), "utf8"));
+    const ajv = new Ajv2020({ strict: true, allErrors: true });
+    addFormats(ajv);
+    const validate = ajv.compile(schema);
+
+    const doc = {
+      serena_available: true,
+      context7_available: true,
+      frameworks_surveyed: [],
+      files_visited: 0,
+      symbols_resolved: 0,
+      unresolved_symbols: [],
+      degradations: [{
+        stage: "phase-c-expansion",
+        reason: "role-expansion (user-approved): calls to Logger.info/warn (12 candidates added)",
+        strategy_type: "call_pattern"
+      }]
+    };
+    assert.ok(validate(doc), JSON.stringify(validate.errors, null, 2));
+
+    // Bad strategy_type is rejected.
+    const badDoc = {
+      ...doc,
+      degradations: [{ ...doc.degradations[0], strategy_type: "vibes" }]
+    };
+    assert.ok(!validate(badDoc), "unknown strategy_type value should be rejected");
+  } finally { cleanup(dir); }
+});
+
 test("e2e: stamped coverage.schema.json accepts phase-a-gap in degradations[].stage", async () => {
   const { default: Ajv2020 } = await import("ajv/dist/2020.js");
   const { default: addFormats } = await import("ajv-formats");
