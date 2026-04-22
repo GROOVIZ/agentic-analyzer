@@ -83,6 +83,31 @@ For each analyzer you review:
 - [ ] When overrides are orphaned (no matching live entry), are they
       preserved, not deleted?
 
+**Properties (Phase D / D.5)**
+
+- [ ] Does the `rules.md` table include a `Properties to set` column,
+      with at least one key declared per non-catch-all rule?
+- [ ] Do all declared property keys appear in the stamped
+      `analysis.schema.json` entry schema as permissible additional
+      properties? (They should; the schema uses
+      `additionalProperties: { type: primitives }` — no key-level
+      constraint.)
+- [ ] In a real `analysis.json` output: for every entry whose
+      `rule_fired` is not the catch-all, does `entries[i].properties`
+      contain at least the keys declared in the rule's
+      `Properties to set` cell? Missing keys indicate Phase D.5 is
+      not running or the extraction prompt is silently failing.
+- [ ] For every property key that is `null` in `entries[i].properties`,
+      is there a matching `coverage.degradations[]` entry with
+      `stage: "classification"` and a reason that names the key and
+      the rule? Silent nulls defeat the auditability goal.
+- [ ] Are property values always primitives (string / number /
+      boolean / null)? Arrays and nested objects are schema
+      violations.
+- [ ] Does the catch-all entry's `properties` object stay empty?
+      Phase D.5 must skip catch-all entries — re-extracting for them
+      implies re-classification, which Phase D.5 is explicitly not.
+
 **Oracle / Phase C.2 backstop (when `<analyzer>-analysis/expected-entities.json` exists)**
 
 - [ ] Does the discovery prompt actually consult the oracle? Grep
