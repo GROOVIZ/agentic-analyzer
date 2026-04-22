@@ -22,7 +22,11 @@ For every candidate that survives triage, emit an entry in `{{ENTITY_KEY}}[]`:
   "rule_fired": "R<N>",
   "rationale": "<one sentence — quote the evidence>",
   "confidence": "high | medium | low",
-  "analysis_status": "complete | partial | needs_review"
+  "analysis_status": "complete | partial | needs_review",
+  "properties": {
+    "<key_1>": "<primitive value | null>",
+    "<key_2>": "<primitive value | null>"
+  }
 }
 ```
 
@@ -41,6 +45,41 @@ If your ruleset includes a drop rule (e.g., R0 "not-a-thing"), run it first
 and elide matching candidates from `analysis.json` entirely. Record drops
 in an audit file so reviewers can inspect them, and increment a
 `<drop>_dropped` counter in `coverage.json`.
+
+## Properties (side-effect emission)
+
+When a rule fires, populate the entry's `properties` object with the
+keys named in that rule's `Properties to set` column of `rules.md`.
+
+Rules for property emission:
+
+- **Emit only declared keys.** If the rule's row lists `framework,
+  log_level`, emit exactly those two keys. Do NOT emit extras — the
+  Phase D.5 consolidation pass is the authoritative place for
+  analytics-wide keys.
+- **Values are primitives.** Strings, numbers, booleans, or `null`.
+  No nested objects, no arrays.
+- **Prefer the evidence-grounded value.** If the key is
+  `message_contains_pii_token`, set `true` or `false` based on the
+  same evidence the rule's trigger read — not a guess.
+- **Unavailable → `null`.** If the rule fires but you cannot
+  determine a declared property from the snippet (e.g., the call
+  site references a config value whose file Serena couldn't resolve),
+  emit `null` for that key and drop `confidence` to `medium` if the
+  key materially affected the decision, or leave `confidence`
+  unchanged otherwise.
+- **No key declared → empty object.** The catch-all (`R<last>`)
+  typically has no declared keys; its entry still emits
+  `"properties": {}` (never omit the field — schema accepts omission,
+  but Phase D.5 expects a bag to merge into). Write an empty object.
+- **Do NOT invent keys.** If you find an interesting signal not
+  declared by any rule, record it in `rationale` instead. Adding
+  undeclared keys here fragments the analytics surface and Phase D.5
+  won't backfill them.
+
+The schema allows `additionalProperties: { type: ["string", "number",
+"boolean", "null"] }` on the properties bag — non-primitive values
+fail validation, which hard-fails the run.
 
 ## Catch-all
 
