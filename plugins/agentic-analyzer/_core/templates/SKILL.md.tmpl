@@ -125,6 +125,35 @@ Validate:
 node $SKILL_DIR/bin/validate.mjs $SKILL_DIR/schema/analysis.schema.json {{ANALYZER_NAME}}-analysis/output/runs/<run-id>/analysis.json
 ```
 
+## Step 5.5 — Phase D.5: Property consolidation
+
+Follow `prompts/properties.md`. For every entry in `{{ENTITY_KEY}}[]`
+whose `rule_fired` is NOT the catch-all:
+
+1. Look up the `Properties to set` column for that rule in `rules.md`.
+2. Compare against the entry's existing `properties` object.
+3. If any declared key is missing, run the extraction prompt on the
+   entry's snippet and merge the returned partial `properties` into
+   the entry.
+4. For each key that ends up `null` after extraction, append a
+   `coverage.degradations[]` entry:
+   ```json
+   {
+     "stage": "classification",
+     "reason": "property extraction failed: <key> for rule <rule_fired>"
+   }
+   ```
+
+Re-validate `analysis.json` after the consolidation pass:
+
+```
+node $SKILL_DIR/bin/validate.mjs $SKILL_DIR/schema/analysis.schema.json {{ANALYZER_NAME}}-analysis/output/runs/<run-id>/analysis.json
+```
+
+Phase D.5 is strictly additive — it writes only to each entry's
+`properties` object, never to `decision`, `rule_fired`, `rationale`,
+or any other field. Catch-all entries are skipped entirely.
+
 ## Step 6 — Coverage
 
 Write `{{ANALYZER_NAME}}-analysis/output/runs/<run-id>/coverage.json`, then
