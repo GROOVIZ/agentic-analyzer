@@ -9,8 +9,8 @@
   "plugins": [
     {
       "name": "agentic-analyzer",
-      "description": "Authoring kit: scaffolds new analyzer skills via an interactive `/new-analyzer` interview that drafts rules.md through a dispatched rule-author subagent. Ships four specialist subagents and a generic runtime (validator, snippet normalizer, fixture comparator, override-replay engine).",
-      "version": "0.2.0",
+      "description": "Authoring kit: scaffolds new analyzer skills via an interactive `/new-analyzer` interview (with fixture auto-gen + post-stamp quality gate) and a companion `/expected-entities` command for feeding dev-team oracle lists into the Phase C.2 discovery backstop. Stamped analyzers record per-entity property bags (Phase D side-effect + Phase D.5 consolidation). Ships five specialist subagents and a generic runtime (validators, normalizer, comparators, replay engine).",
+      "version": "0.3.0",
       "source": "./plugins/agentic-analyzer",
       "author": {
         "name": "Thierry DE DOBBELEER",
