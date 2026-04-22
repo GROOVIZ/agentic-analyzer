@@ -379,31 +379,69 @@ Do NOT claim the command "aborted." Step 7 succeeded; the skill dir
 exists; the only honest framing is "partial fixture coverage —
 validator will enumerate what's still missing."
 
-### Step 9 — Seed expected-entities (optional)
+### Step 9 — Seed expected-entities
 
-Ask the user whether the dev team maintains a ground-truth list of
-known {{ENTITY_NAME_HUMAN}}s. This is the oracle that Phase C.2 of
-`/analyze-$ANALYZER_NAME` will consult to backstop discovery.
+**This step ALWAYS runs.** The outcome is always reported in Step 10's
+summary — either N entities seeded or explicit `SKIPPED`. Silent
+no-op is a bug. The user's *behaviour* is optional (they may reply
+`skip`); the *step itself* is not.
 
-Prompt:
+Print diagnostics at each sub-step so the user can see what's
+happening. Every `[Step 9]` line below MUST be surfaced to the
+session.
 
-> Does the dev team have a list of known <entity_name_human>s to seed
-> as the expected-entities oracle? You can:
->   - paste a list (one name per line, or a free-form sentence),
->   - give a file path (absolute or repo-relative),
->   - or reply `skip` to continue without seeding.
+#### Step 9.1 — Ask
 
-If the user replies `skip` (or an equivalent "no"/"none"): proceed
-directly to Step 10. Do NOT create any expected-entities file.
+Print to the session verbatim (substituting the real entity name):
 
-Otherwise, classify the input:
+```
+[Step 9] Expected-entities oracle — seed the dev-team ground-truth list
 
-- If `$INPUT` resolves to a readable file on disk, `Read` its
-  contents. Set `SOURCE_HINT="file:<relpath>"`.
-- Otherwise, use the input string verbatim. Set
-  `SOURCE_HINT="bootstrap:<today YYYY-MM-DD>"`.
+Paste a list of known <entity_name_human>s the team wants tracked,
+give a file path, or reply `skip` (exact word) to continue without
+seeding.
 
-Dispatch the `entity-list-ingestor` subagent via the `Task` tool:
+Accepted shapes:
+  - one name per line (plain text)
+  - free-form sentence ("I noticed userSignupLogger is missing")
+  - table with names + optional decision + optional file path
+  - absolute or repo-relative file path
+```
+
+Wait for the user's reply, then treat it strictly:
+
+- If the entire reply is the literal word `skip` (case-insensitive,
+  surrounding whitespace allowed): go to Step 9.6 with outcome
+  `SKIPPED`.
+- **Anything else IS the oracle input.** Do NOT interpret short,
+  ambiguous replies ("no", "none", "nope", "not yet") as skip. If
+  the user's reply is genuinely unclear or empty, re-print the
+  prompt once and wait again. Only the exact word `skip` short-
+  circuits.
+
+#### Step 9.2 — Classify the input
+
+Print: `[Step 9] Classifying input...`
+
+Decide whether the reply is a file path or raw text:
+
+1. Resolve the reply against `$TARGET_ROOT` if it starts with `./`
+   or `../` or is a bare filename. Leave absolute paths (`/…` or
+   `C:\…`) as-is.
+2. If the resolved path is readable (use the `Read` tool), capture
+   the file's contents as the raw input. Set
+   `SOURCE_HINT="file:<relpath>"`.
+3. Otherwise capture the user's reply verbatim as raw input. Set
+   `SOURCE_HINT="bootstrap:<today YYYY-MM-DD>"`.
+
+Print: `[Step 9] Input source: <SOURCE_HINT> (<N> bytes)`
+
+#### Step 9.3 — Dispatch `entity-list-ingestor`
+
+Print: `[Step 9] Dispatching entity-list-ingestor...`
+
+Use the `Task` tool with `subagent_type: entity-list-ingestor` and
+this prompt:
 
 ```
 MODE: dispatch
@@ -412,44 +450,101 @@ any questions. Return ONLY the JSON envelope specified in your agent
 definition.
 
 INPUTS:
-- raw_input:      <the text from above, verbatim>
+- raw_input:      <raw input text, verbatim>
 - source_hint:    "<SOURCE_HINT>"
 - analyzer_name:  "$ANALYZER_NAME"
 - decision_enum:  <from Step 5, as JSON array>
 ```
 
-Parse the returned envelope. If parsing fails or `entities[]` is
-malformed, surface the raw output and ask the user whether to retry
-with a clarified input or `skip`. Do NOT silently drop bad output.
+Parse the returned envelope. On any of the following failures, print
+the raw agent output in a fenced block, print
+`[Step 9] ingestor output unusable — options: retry or 'skip'`, and
+return to Step 9.1 (loop, do NOT fall through):
 
-Show the user the parsed `entities[]` + `uncertainties[]` as a
-fenced block. Ask for confirmation or corrections. Apply corrections
-by editing the in-memory array directly; do NOT re-dispatch the
-subagent.
+- Envelope is not valid JSON.
+- `entities` is missing, not an array, or empty.
+- Any entry lacks a non-empty `name` string.
 
-On confirmation, build the canonical document:
+Print: `[Step 9] Parsed <N> entities (<M> uncertainties)`
 
-```json
-{
-  "schema_version": "1.0.0",
-  "entities": [ ... confirmed entries ... ]
-}
+#### Step 9.4 — Review with the user
+
+Show the parsed `entities[]` + `uncertainties[]` in a fenced JSON
+block. Ask verbatim:
+
+```
+Confirm these <N> entities (reply `ok` or `confirm`), or reply with
+corrections ("drop <name>" / "add <name>" / "rename <old> to <new>"),
+or `skip` to drop the oracle entirely.
 ```
 
-Write it to
-`$TARGET_ROOT/$ANALYZER_NAME-analysis/expected-entities.json`,
-creating the directory first if needed. Then validate:
+Apply corrections inline to the in-memory array. Do NOT re-dispatch
+the subagent for edits.
+
+If the user replies `skip` at this point: go to Step 9.6 with outcome
+`SKIPPED`. Print
+`[Step 9] Skipped after review — no oracle file written.`
+
+Loop on Step 9.4 until the user's reply is unambiguously an
+affirmation (`ok`, `confirm`, `looks good`, `yes`, `go`, or similar)
+or `skip`. If unclear, print
+`[Step 9] Reply ambiguous — please confirm or type 'skip'.` and wait.
+
+#### Step 9.5 — Write + validate
+
+Build:
+
+```json
+{ "schema_version": "1.0.0", "entities": [ ... final array ... ] }
+```
+
+Path: `$TARGET_ROOT/$ANALYZER_NAME-analysis/expected-entities.json`
+(create the directory first if missing).
+
+Print: `[Step 9] Writing <path>...`
+
+Write the file using the `Write` tool. Immediately `Read` the file
+back to confirm it exists and parses as JSON. If the read fails:
+
+```
+[Step 9] WRITE VERIFICATION FAILED: <path> did not land.
+[Step 9] Step 9 aborting — Step 10 summary will show oracle status FAILED.
+```
+
+Record outcome `FAILED:<reason>` and go to Step 9.6.
+
+Validate against the shared schema:
 
 ```
 node "$CLAUDE_PLUGIN_ROOT/_core/bin/validate.mjs" \
   "$CLAUDE_PLUGIN_ROOT/_core/schema/expected-entities.schema.json" \
-  "$TARGET_ROOT/$ANALYZER_NAME-analysis/expected-entities.json"
+  "<path>"
 ```
 
-On non-zero exit: surface stderr, delete the written file, abort.
-A corrupt oracle is worse than no oracle.
+On non-zero exit:
 
-Record for the summary how many entities were seeded.
+- Print `[Step 9] Schema validation failed:` followed by the
+  validator's stderr.
+- Delete the written file (`node -e "require('fs').unlinkSync(…)"`).
+- Ask the user whether to re-run Step 9 with corrected input or
+  `skip`. Loop back to Step 9.1 on retry, or Step 9.6 on skip.
+
+On zero exit: record outcome `OK:<N>:<path>`. Print
+`[Step 9] Wrote <path> with <N> entities. ✓`
+
+#### Step 9.6 — Record outcome
+
+Record EXACTLY ONE of these outcomes for Step 10's summary
+(mandatory — never omitted):
+
+- `OK:<N>:<path>` — file written + schema-valid.
+- `SKIPPED` — user declined.
+- `FAILED:<reason>` — write or validation failed after the user
+  provided input. The Step 10 summary calls this out in red-flag
+  prose: "oracle was requested but could not be written — check
+  logs above and re-run `/expected-entities`."
+
+Proceed to Step 10 regardless of outcome.
 
 ### Step 10 — Validate scaffold (quality gate)
 
@@ -500,11 +595,21 @@ Fixtures scaffolded: <N> stub fixture(s) under $SKILL_DIR/fixtures/
   Fixtures are unproven — run /analyze-$ANALYZER_NAME against each
   fixture's target/ to verify the expected rule actually fires.
 
-Expected-entities oracle: <M> name(s) seeded
-  Path: $TARGET_ROOT/$ANALYZER_NAME-analysis/expected-entities.json
-  (omit this whole section if Step 9 was skipped — no file written.)
-  Phase C.2 of /analyze-$ANALYZER_NAME will consult this file to
-  backstop discovery. Extend it later via /expected-entities.
+Expected-entities oracle: <based on Step 9.6 outcome, render exactly one>
+  OK:      <M> name(s) seeded
+           Path: $TARGET_ROOT/$ANALYZER_NAME-analysis/expected-entities.json
+           Phase C.2 of /analyze-$ANALYZER_NAME will consult this file to
+           backstop discovery. Extend it later via /expected-entities.
+  SKIPPED: user declined to seed an oracle
+           Run /expected-entities later if a dev-team list becomes available.
+  FAILED:  <reason captured by Step 9.5>
+           *** Oracle was requested but could not be written. ***
+           Check the Step 9 log above, then re-run /expected-entities
+           once the underlying issue is resolved.
+
+This block is MANDATORY in every success summary — never omit it.
+Absence of this block means Step 9 didn't run, which is a bug worth
+filing.
 
 Other next steps:
   1. cd "$SKILL_DIR" && npm install
@@ -536,5 +641,11 @@ Other next steps:
   through Steps 9–10 so the validator enumerates the remaining gaps.
   Never claim "aborted" when Step 7's scaffold is already materialized.
 - If Step 9 writes an `expected-entities.json` that fails schema
-  validation, delete the file before aborting. A corrupt oracle is
-  worse than no oracle.
+  validation, delete the file before looping back. A corrupt oracle
+  is worse than no oracle.
+- **Step 9 ALWAYS runs and ALWAYS reports an outcome in Step 10's
+  summary.** The oracle block is not optional. Acceptable outcomes
+  are `OK:N:<path>`, `SKIPPED`, or `FAILED:<reason>` — pick one, never
+  omit. Silent Step 9 = bug. Short ambiguous user replies ("no",
+  "none", "not yet") must NOT be interpreted as skip; only the
+  literal word `skip` short-circuits.
