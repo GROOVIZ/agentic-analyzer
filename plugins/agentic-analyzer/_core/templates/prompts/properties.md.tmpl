@@ -1,0 +1,85 @@
+# Property consolidation prompt (Phase D.5)
+
+You are running the property-consolidation phase of {{ANALYZER_NAME}}
+analysis. This phase runs AFTER classification (Phase D) has produced
+`analysis.json`. Its job is to backfill property keys that were
+declared by the rule that fired but not populated during classification.
+
+## Inputs
+
+For each entry in `{{ENTITY_KEY}}[]` where `rule_fired` is not the
+catch-all:
+
+1. Look up the rule's row in `rules.md` and extract the
+   `Properties to set` cell — the comma-separated list of property
+   keys this rule is responsible for.
+2. Compare against the entry's existing `properties` object.
+3. If every declared key is already present in `properties`, SKIP
+   this entry — there is nothing to consolidate.
+4. Otherwise, identify the **missing keys** (declared by rule but not
+   in `properties`).
+
+## For each missing key, extract a value
+
+Read the entry's `source.snippet` plus (if needed) a 30-line Read
+around `source.file` at `[source.line_start - 15, source.line_end + 15]`.
+Determine the value for the missing key:
+
+- Return a primitive (`string`, `number`, `boolean`) when the snippet
+  provides unambiguous evidence.
+- Return `null` when:
+  - The snippet does not contain the information.
+  - The information would require cross-file reasoning Serena cannot
+    confirm.
+  - The key's meaning is ambiguous for this rule (e.g., a
+    `framework` key on a plain-stdlib call site).
+- NEVER fabricate. If you cannot decide, choose `null`. The
+  downstream consumer distinguishes `null` from absence.
+
+Do not re-extract keys that are already present — they were populated
+by the rule at classification time and are authoritative.
+
+## Output shape (per entry)
+
+Return a partial `properties` object containing ONLY the keys you
+extracted in this pass. The runtime merges it into the entry's
+existing `properties`:
+
+```json
+{
+  "{{ID_FIELD}}": "<entry id>",
+  "properties": {
+    "<missing_key_1>": "<primitive | null>",
+    "<missing_key_2>": "<primitive | null>"
+  }
+}
+```
+
+If you extracted zero values, return:
+```json
+{
+  "{{ID_FIELD}}": "<entry id>",
+  "properties": {}
+}
+```
+
+## Missing after extraction → degradation
+
+For each key that ends up `null` after your best-effort extraction,
+the orchestrator appends a `coverage.degradations[]` entry with
+`stage: "classification"` and
+`reason: "property extraction failed: <key> for rule <rule_fired>"`.
+You do NOT write degradations directly — that is the orchestrator's
+job.
+
+## Hard rules
+
+- Catch-all entries (`rule_fired` = `R<last>`) are skipped entirely
+  by this phase. Their `properties` object stays empty.
+- Do not alter `decision`, `decision_source`, `rule_fired`,
+  `rationale`, `confidence`, or any other entry field. Phase D.5 is
+  strictly additive on the `properties` object.
+- Never re-run a rule's trigger logic here. Phase D.5 is extraction,
+  not re-classification.
+- Do not invent property keys the rule did not declare. Analytics-
+  wide keys are out of scope for MVP.
