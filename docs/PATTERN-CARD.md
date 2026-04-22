@@ -64,8 +64,12 @@ of every `/analyze-<name>` run.
                     C.2 expected-entities backstop (runs when oracle file exists,
                         with single-run framework expansion gated ≥2 hits,
                         capped at 200 candidates)  → candidates.json
-5  Phase D         rule classification                    → analysis.json
-6  Coverage        degradations, counters                 → coverage.json
+5   Phase D         rule classification + side-effect properties → analysis.json
+5.5 Phase D.5       property consolidation (dedicated extraction for keys
+                    declared by rule but missing from side-effect output;
+                    appends nulls + degradations for unresolvable keys)
+                    → analysis.json (additive)
+6   Coverage        degradations, counters                 → coverage.json
 7  Override replay (entity_id + snippet hash) match       → analysis.json mutated
 8  Latest pointer  printf '%s' <run-id> > latest.txt
 9  Summary         print to session
@@ -73,6 +77,12 @@ of every `/analyze-<name>` run.
 
 Each arrow is a schema-gated boundary. `validate.mjs` runs between
 every pair; non-zero exit aborts the run.
+
+Phase D.5 is strictly additive on each entry's `properties` object —
+it never rewrites decisions or rules. The schema boundary between 5.5
+and 6 is the same `analysis.schema.json` as between 5 and 5.5;
+additive writes cannot break it, so the boundary is re-validated
+defensively rather than preventively.
 
 ## Decision cells
 
