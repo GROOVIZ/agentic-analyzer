@@ -21,9 +21,10 @@ catch-all:
 
 ## For each missing key, extract a value
 
-Read the entry's `source.snippet` plus (if needed) a 30-line Read
-around `source.file` at `[source.line_start - 15, source.line_end + 15]`.
-Determine the value for the missing key:
+Read the entry's `source.snippet` plus (if needed) a wider window
+around `source.file`: 15 lines before `source.line_start` and 15
+lines after `source.line_end`. Determine the value for the missing
+key:
 
 - Return a primitive (`string`, `number`, `boolean`) when the snippet
   provides unambiguous evidence.
@@ -76,6 +77,13 @@ job.
 
 - Catch-all entries (`rule_fired` = `R<last>`) are skipped entirely
   by this phase. Their `properties` object stays empty.
+- Every non-catch-all entry you consume must already have a
+  `properties` object (per the classification prompt, which emits
+  `"properties": {}` even when a rule declares zero keys). If you
+  encounter an entry whose `properties` key is entirely missing,
+  that is a Phase-D invariant violation — stop and report it to
+  the orchestrator rather than silently backfilling. The
+  orchestrator will decide whether to normalize or re-run Phase D.
 - Do not alter `decision`, `decision_source`, `rule_fired`,
   `rationale`, `confidence`, or any other entry field. Phase D.5 is
   strictly additive on the `properties` object.
