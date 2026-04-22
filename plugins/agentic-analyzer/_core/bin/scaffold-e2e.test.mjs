@@ -226,6 +226,133 @@ test("e2e: stamped analysis.schema.json rejects non-primitive property values", 
   } finally { cleanup(dir); }
 });
 
+test("e2e: role-inferencer envelope schema accepts a valid envelope with all required fields", async () => {
+  const { default: Ajv2020 } = await import("ajv/dist/2020.js");
+  const { default: addFormats } = await import("ajv-formats");
+  const schemaPath = join(here, "..", "schema", "role-inferencer-envelope.schema.json");
+  const schema = JSON.parse(readFileSync(schemaPath, "utf8"));
+  const ajv = new Ajv2020({ strict: true, allErrors: true });
+  addFormats(ajv);
+  const validate = ajv.compile(schema);
+
+  const doc = {
+    strategies: [{
+      rank: 1,
+      strategy_type: "call_pattern",
+      role_description: "calls to Logger.info/warn/error with a format-string arg",
+      criteria: [{
+        criterion: "receiver is of type org.slf4j.Logger",
+        evidence: ["userSignupLogger @ Foo.java:42", "orderAuditLogger @ Bar.java:17"],
+        ground_count: 2
+      }],
+      serena_queries: [
+        { tool: "find_symbol", name_path: "Logger/info", substring_matching: false }
+      ],
+      grep_fallback_patterns: ["\\blog\\.(info|warn|error)\\s*\\("],
+      exclude_patterns: ["test/", "**/*.test.*"],
+      estimated_hit_count: "10-100",
+      confidence: "high",
+      negative_examples: [
+        "System.out.println(...) — not a Logger call",
+        "log.debug(...) — excluded by role (no oracle hit uses debug)",
+        "printf(...) — stdlib, not Logger"
+      ]
+    }],
+    uncertainties: []
+  };
+  assert.ok(validate(doc), JSON.stringify(validate.errors, null, 2));
+});
+
+test("e2e: role-inferencer envelope rejects envelope missing strategies[]", async () => {
+  const { default: Ajv2020 } = await import("ajv/dist/2020.js");
+  const { default: addFormats } = await import("ajv-formats");
+  const schemaPath = join(here, "..", "schema", "role-inferencer-envelope.schema.json");
+  const schema = JSON.parse(readFileSync(schemaPath, "utf8"));
+  const ajv = new Ajv2020({ strict: true, allErrors: true });
+  addFormats(ajv);
+  const validate = ajv.compile(schema);
+
+  assert.ok(!validate({}), "envelope without strategies[] should be rejected");
+});
+
+test("e2e: role-inferencer envelope rejects a criterion without evidence[]", async () => {
+  const { default: Ajv2020 } = await import("ajv/dist/2020.js");
+  const { default: addFormats } = await import("ajv-formats");
+  const schemaPath = join(here, "..", "schema", "role-inferencer-envelope.schema.json");
+  const schema = JSON.parse(readFileSync(schemaPath, "utf8"));
+  const ajv = new Ajv2020({ strict: true, allErrors: true });
+  addFormats(ajv);
+  const validate = ajv.compile(schema);
+
+  const doc = {
+    strategies: [{
+      rank: 1,
+      strategy_type: "call_pattern",
+      role_description: "x",
+      criteria: [{ criterion: "c", ground_count: 1 }],
+      serena_queries: [],
+      grep_fallback_patterns: [],
+      exclude_patterns: [],
+      estimated_hit_count: "0-10",
+      confidence: "low",
+      negative_examples: ["a", "b", "c"]
+    }]
+  };
+  assert.ok(!validate(doc), "criterion without evidence[] should be rejected");
+});
+
+test("e2e: role-inferencer envelope rejects an unknown strategy_type", async () => {
+  const { default: Ajv2020 } = await import("ajv/dist/2020.js");
+  const { default: addFormats } = await import("ajv-formats");
+  const schemaPath = join(here, "..", "schema", "role-inferencer-envelope.schema.json");
+  const schema = JSON.parse(readFileSync(schemaPath, "utf8"));
+  const ajv = new Ajv2020({ strict: true, allErrors: true });
+  addFormats(ajv);
+  const validate = ajv.compile(schema);
+
+  const doc = {
+    strategies: [{
+      rank: 1,
+      strategy_type: "vibes_based",
+      role_description: "x",
+      criteria: [{ criterion: "c", evidence: ["a"], ground_count: 1 }],
+      serena_queries: [],
+      grep_fallback_patterns: [],
+      exclude_patterns: [],
+      estimated_hit_count: "0-10",
+      confidence: "low",
+      negative_examples: ["a", "b", "c"]
+    }]
+  };
+  assert.ok(!validate(doc), "unknown strategy_type should be rejected");
+});
+
+test("e2e: role-inferencer envelope rejects fewer than 3 negative_examples", async () => {
+  const { default: Ajv2020 } = await import("ajv/dist/2020.js");
+  const { default: addFormats } = await import("ajv-formats");
+  const schemaPath = join(here, "..", "schema", "role-inferencer-envelope.schema.json");
+  const schema = JSON.parse(readFileSync(schemaPath, "utf8"));
+  const ajv = new Ajv2020({ strict: true, allErrors: true });
+  addFormats(ajv);
+  const validate = ajv.compile(schema);
+
+  const doc = {
+    strategies: [{
+      rank: 1,
+      strategy_type: "call_pattern",
+      role_description: "x",
+      criteria: [{ criterion: "c", evidence: ["a"], ground_count: 1 }],
+      serena_queries: [],
+      grep_fallback_patterns: [],
+      exclude_patterns: [],
+      estimated_hit_count: "0-10",
+      confidence: "low",
+      negative_examples: ["only", "two"]
+    }]
+  };
+  assert.ok(!validate(doc), "fewer than 3 negative_examples should be rejected");
+});
+
 test("e2e: stamped coverage.schema.json accepts phase-c-expansion in degradations[].stage", async () => {
   const { default: Ajv2020 } = await import("ajv/dist/2020.js");
   const { default: addFormats } = await import("ajv-formats");
