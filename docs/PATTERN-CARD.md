@@ -61,9 +61,14 @@ of every `/analyze-<name>` run.
 2  Phase A         framework survey (Context7)            → _phaseA.json
 3  Phase B         symbolic enumeration (Serena)          → _phaseB.json
 4  Phase C         C.1 ad-hoc + config (optional per domain)
-                    C.2 expected-entities backstop (runs when oracle file exists,
-                        with single-run framework expansion gated ≥2 hits,
-                        capped at 200 candidates)  → candidates.json
+                    C.2 expected-entities backstop (runs when oracle file exists):
+                        step 4 framework-expansion (cluster ≥2 hits on library
+                          not in frameworks[], Context7+Serena survey, cap 200)
+                        step 5 role-expansion (role-inferencer subagent proposes
+                          search strategies; tier-gated autonomous/interactive/
+                          skip on AGENTIC_ANALYZER_NONINTERACTIVE; cap 200
+                          per strategy; rank-1 only)
+                    → candidates.json
 5   Phase D         rule classification + side-effect properties → analysis.json
 5.5 Phase D.5       property consolidation (dedicated extraction for keys
                     declared by rule but missing from side-effect output;
@@ -147,8 +152,11 @@ phase-a-gap         oracle resolved an entity via Phase C.2; its framework is
 phase-b             symbolic-enumeration issue
 phase-c             ad-hoc/config issue; also: expected entity unresolvable,
                     malformed expected-entities.json
-phase-c-expansion   within-run framework expansion occurred or hit its
-                    200-candidate cap. Telemetry, not a failure.
+phase-c-expansion   within-run expansion occurred (framework-based in step 4,
+                    role-based in step 5) or hit its 200-candidate cap.
+                    Telemetry, not a failure. Entries carry an optional
+                    strategy_type field (framework | annotation | call_pattern |
+                    name_pattern | path_pattern | combination).
 classification      rule-matching issue
 override-replay     overrides.json problem
 other               escape hatch
