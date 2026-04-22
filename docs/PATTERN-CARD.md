@@ -54,6 +54,49 @@ fixture per rule. An optional Step 9 seeds a dev-team oracle at
 `<target>/<analyzer>-analysis/expected-entities.json`, consulted by Phase C.2
 of every `/analyze-<name>` run.
 
+## Oracle feedback loop (Phase C.2)
+
+`/new-analyzer` (Step 9) or `/expected-entities` maintains the oracle at
+`<target>/<analyzer>-analysis/expected-entities.json`. Every `/analyze-<name>`
+run consults it via three expansion mechanisms, each additive, each
+bounded:
+
+1. **Step 3 — backstop search.** Each oracle `name` is resolved by
+   Serena `find_symbol` (or `search_for_pattern` / `Grep` fallback).
+   Zero-hit names emit a `stage: "phase-c"` degradation; multi-hit
+   names disambiguate via first-resolution (author can tighten the
+   name in the oracle if that's wrong).
+2. **Step 4 — framework-expansion.** When ≥2 resolved sites share a
+   framework/library not in `frameworks[]`, the analyzer auto-surveys
+   that framework (Context7 docs + Serena enumeration), capped at 200
+   candidates. Emits `stage: "phase-a-gap"` (persistent signal: add
+   the library to `frameworks[]`) and `stage: "phase-c-expansion"`
+   (telemetry, with `strategy_type: "framework"`).
+3. **Step 5 — role-expansion.** The `role-inferencer` subagent reads
+   the resolved sites' imports + call chains + enclosing symbols and
+   proposes search strategies for entities playing the same *role*
+   (not just same framework). Each strategy has a `strategy_type`
+   (`annotation` / `call_pattern` / `name_pattern` / `path_pattern` /
+   `combination`), evidence-grounded criteria, and self-assessed
+   confidence. Tier-gated: `high` → autonomous; `medium`/`low` →
+   interactive Accept/Refine/Reject/Skip, or skipped with
+   `AGENTIC_ANALYZER_NONINTERACTIVE=1`. Capped at 200 candidates per
+   strategy; rank-1 only per run. Emits `strategy_type: <type>` on
+   the degradation.
+
+**Author's read-after-run contract.** Scan `coverage.degradations[]`:
+
+- `phase-a-gap` entries name a library the oracle proved is missing
+  from `frameworks[]`. Add it; next run's Phase A catches it at the
+  source.
+- `phase-c-expansion` entries log what each auto-expansion did. A
+  `cap-reached` entry says "200 isn't enough — add the library or
+  refine the oracle." A `user-approved` entry is the record of your
+  interactive choice.
+- `role-expansion-rejected` entries log a strategy you declined —
+  useful if the same pattern keeps getting proposed and you need to
+  tune the oracle to stop evoking it.
+
 ## Runtime phases (scaffolded SKILL.md)
 
 ```

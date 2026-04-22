@@ -327,6 +327,32 @@ test("e2e: role-inferencer envelope rejects an unknown strategy_type", async () 
   assert.ok(!validate(doc), "unknown strategy_type should be rejected");
 });
 
+test("e2e: role-inferencer envelope rejects rank: 0 (minimum: 1 bound)", async () => {
+  const { default: Ajv2020 } = await import("ajv/dist/2020.js");
+  const { default: addFormats } = await import("ajv-formats");
+  const schemaPath = join(here, "..", "schema", "role-inferencer-envelope.schema.json");
+  const schema = JSON.parse(readFileSync(schemaPath, "utf8"));
+  const ajv = new Ajv2020({ strict: true, allErrors: true });
+  addFormats(ajv);
+  const validate = ajv.compile(schema);
+
+  const doc = {
+    strategies: [{
+      rank: 0,
+      strategy_type: "call_pattern",
+      role_description: "x",
+      criteria: [{ criterion: "c", evidence: ["a"], ground_count: 1 }],
+      serena_queries: [],
+      grep_fallback_patterns: [],
+      exclude_patterns: [],
+      estimated_hit_count: "0-10",
+      confidence: "low",
+      negative_examples: ["a", "b", "c"]
+    }]
+  };
+  assert.ok(!validate(doc), "rank: 0 should be rejected (schema declares minimum: 1)");
+});
+
 test("e2e: role-inferencer envelope rejects fewer than 3 negative_examples", async () => {
   const { default: Ajv2020 } = await import("ajv/dist/2020.js");
   const { default: addFormats } = await import("ajv-formats");

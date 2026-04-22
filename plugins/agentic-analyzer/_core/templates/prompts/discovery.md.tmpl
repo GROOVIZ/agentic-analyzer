@@ -321,10 +321,25 @@ for this domain.
 
        Handle the user's reply:
        - `A` / `accept` / `yes` / `ok` → go to step 5.4.
-       - `R` / `refine` → accept free-form refinement input (e.g.,
-         "narrow to `src/core/`", "drop criterion 2", "change regex
-         to X"). Apply inline to the in-memory strategy. Re-print
-         the proposal and re-prompt.
+       - `R` / `refine` → accept free-form refinement input and
+         translate it to a concrete mutation of the in-memory
+         strategy:
+         - "narrow to `<path>`" / "exclude `<glob>`" → append the
+           glob to `exclude_patterns`, or replace `source_roots`
+           if the user named a positive scope.
+         - "drop criterion N" / "remove evidence X" → splice out of
+           `criteria[]` / `criteria[i].evidence[]`.
+         - "change regex to X" / "use `<query>` instead" → replace
+           the corresponding entry in `serena_queries[]` or
+           `grep_fallback_patterns[]`.
+         - "tighten confidence" / "downgrade to medium" → adjust
+           `confidence` (never upward).
+         - Anything you can't map to one of the above fields →
+           re-prompt with `[Phase C.2 step 5] Cannot apply
+           '<input>' — rephrase as narrow/drop/change/confidence,
+           or choose A/J/S.`
+         After applying the mutation, re-estimate `estimated_hit_count`,
+         re-print the proposal, and re-prompt.
        - `J` / `S` / `reject` / `skip` → emit rejected-telemetry
          (step 5.6); skip step 5.4.
        - Unrecognized reply → re-prompt with
