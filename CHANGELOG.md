@@ -7,6 +7,107 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`/expected-entities` command** and **`entity-list-ingestor` subagent**.
+  Accept free-form dev-team input (file path, plain-text name list, pasted
+  comment, mixed-format table) and normalize it into a canonical
+  `<target>/<analyzer>-analysis/expected-entities.json` file, schema-validated
+  via a new shared schema at `_core/schema/expected-entities.schema.json`.
+  Target-repo-level artifact, mirroring the `overrides.json` convention.
+- **Phase C.2 expected-entities backstop** in `prompts/discovery.md.tmpl`.
+  For each name in the oracle, a targeted `endsWith(":" + name)` search runs
+  across source roots; any hit whose framework is not in `frameworks[]`
+  emits a `phase-a-gap` degradation clustered per framework. Clusters with
+  ≥2 hits trigger a within-run framework expansion (Context7 survey + Serena
+  enumeration) capped at 200 candidates per framework, non-recursive, with
+  `phase-c-expansion` telemetry emitted both on successful expansion and
+  cap-reached paths. `phase-a-gap` emits regardless of expansion so the
+  persistence signal to the author is intact.
+- **New coverage degradation stages:** `phase-a-gap` and `phase-c-expansion`.
+- **`_core/bin/validate-scaffold.mjs`** post-stamp quality gate invoked at
+  the end of `/new-analyzer`. Checks: required files present, no unresolved
+  `{{PLACEHOLDER}}` tokens, `SKILL.md` YAML frontmatter sanity, optional
+  `--rule-ids=<csv>` fixture coverage, and an ID-column cross-check of the
+  rules.md table against the CLI rule-ids.
+- **`_core/bin/compare-entities.mjs`** — oracle ↔ `analysis.json` gap
+  reporter. Sections: `MATCHED`, `MISSED`, `AMBIGUOUS`, `DECISION-MISMATCH`,
+  `SUSPICIOUS` (post-parse linter flagging likely ingestor drift). Supports
+  `--case-insensitive`. Exit 0 on clean, 1 on gaps.
+- **Per-entity `properties` bag** on the stamped `analysis.schema.json`
+  entry schema. Optional object, values restricted to primitives (string,
+  number, boolean, null) via `oneOf`. Arrays and nested objects fail
+  validation.
+- **`Properties to set` 4th column** in the rule-author-authored `rules.md`
+  table. Each non-catch-all rule declares a comma-separated list of property
+  keys it is responsible for populating. Catch-all rows leave the cell blank.
+- **Classification-time side-effect emission of declared properties.** The
+  classifier populates each entry's `properties` object with the keys from
+  the rule's `Properties to set` column at rule-fire. Non-primitive values
+  fail schema validation. Confidence tie-break with the existing
+  Serena-unresolved rule: `low` remains the floor when applicable.
+- **Phase D.5 — Property consolidation.** New Step 5.5 in `SKILL.md.tmpl`
+  runs after Phase D classification. For every non-catch-all entry whose
+  declared keys are not yet populated, the new `prompts/properties.md`
+  extraction prompt reads the snippet (+ a 15-lines-before/15-lines-after
+  window of `source.file`) and returns a partial `properties` object with
+  primitive values or `null`. The orchestrator merges it into the entry and
+  appends a `coverage.degradations[]` entry (stage `"classification"`,
+  `reason: "property extraction failed: <key> for rule <rule_fired>"`) for
+  any `null` outcomes. Phase D.5 is strictly additive — never modifies
+  `decision`, `rule_fired`, `rationale`, or `confidence`.
+- **`/new-analyzer` fixture auto-generation (Step 8).** Loops `rule_ids`,
+  calls `fixture-init.mjs` per rule with `--positive` or `--negative`
+  inferred from the Decision column (`dropped` → `--negative`). Honest
+  per-rule success/failure reporting; no false "abort" when one rule fails.
+- **`/new-analyzer` optional expected-entities seeding (Step 9).** Prompts
+  for file path, pasted text, or `skip`; dispatches `entity-list-ingestor`,
+  shows parsed entities + uncertainties for confirmation, writes the
+  canonical file under the target repo, validates.
+- **`/new-analyzer` post-stamp quality gate (Step 10).** Runs
+  `validate-scaffold.mjs --rule-ids=...` as a hard gate on the success
+  summary.
+- **Variable-model preamble** in both `/new-analyzer` and the stamped
+  `SKILL.md.tmpl`. Explicitly distinguishes `$CLAUDE_PLUGIN_ROOT` (real env
+  var, persists across Bash tool calls) from LLM-held placeholders
+  (`$TARGET_ROOT`, `$SKILL_DIR`, `$ANALYZER_NAME`, `$TMP_CONFIG`,
+  `$PLUGIN_ROOT`) that must be substituted literally at each use. Fixes the
+  shell-state-not-persisting drift that previously caused partial scaffolds.
+- **`analyzer-reviewer` checklist sections** for the new subsystems:
+  *Oracle / Phase C.2 backstop* (clustering, cap, non-recursion, null →
+  degradation pairing) and *Properties (Phase D / D.5)* (declared-key
+  coverage, primitive-only values, catch-all `properties: {}`, null
+  auditability).
+- **`PATTERN-CARD.md` runtime phases** now list Phase D.5 (5.5) with cost
+  note + additive-boundary semantics, and the degradation-stages block now
+  documents `phase-a-gap` and `phase-c-expansion`.
+
+### Changed
+
+- `discovery.md.tmpl` Phase A now explicitly handles the empty-frameworks
+  edge case (skip steps 3–4 when `frameworks[] = []`; the never-matching
+  regex `/(?!)/i` would otherwise silently no-op).
+- `SKILL.md.tmpl` Step 4 prose compressed to a pointer into
+  `prompts/discovery.md §Phase C`, which is now authoritative for both
+  C.1 (ad-hoc/config correlation, optional per domain) and C.2 (oracle
+  backstop, runs when the oracle file exists).
+- `examples/analyze-logging/rules.md` regenerated with the 4-column table
+  so the example tracks the new rule-author contract.
+
+### Security
+
+- `stamp.mjs` now validates each `rule_ids[]` element against
+  `/^[A-Za-z0-9_-]+$/`. Closes the path-escape vector where a malformed
+  rule-id reached `fixture-init.mjs --dir=<SKILL_DIR>/fixtures/<rule-id>`
+  unvalidated, enabling traversal via `..`.
+
+### Documentation
+
+- New implementation plan at
+  `docs/superpowers/plans/2026-04-22-entity-properties.md` documents the
+  Phase D.5 / properties feature start-to-finish.
+- `.gitignore` extended for `.serena/` (Serena MCP per-project working state).
+
 ## [0.2.0] — 2026-04-21
 
 ### Breaking

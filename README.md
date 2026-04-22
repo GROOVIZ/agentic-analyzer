@@ -23,7 +23,7 @@ lives at [`docs/PATTERN-CARD.md`](./docs/PATTERN-CARD.md).
 
 | Plugin | Role | Status |
 |---|---|---|
-| [`agentic-analyzer`](./plugins/agentic-analyzer) | **Authoring kit.** Scaffolds new analyzer skills via an interactive `/new-analyzer` interview. Ships four specialist subagents and the generic `_core/` runtime. | 0.2.0 |
+| [`agentic-analyzer`](./plugins/agentic-analyzer) | **Authoring kit.** Scaffolds new analyzer skills via an interactive `/new-analyzer` interview (with fixture auto-gen + post-stamp quality gate) and a companion `/expected-entities` command for feeding dev-team oracle lists into the discovery backstop. Ships five specialist subagents and the generic `_core/` runtime. | 0.2.0 |
 
 Pre-built analyzers (caches, logging, feature flags, session state,
 ...) are planned. Each new plugin lands as a `plugins/<name>/`
