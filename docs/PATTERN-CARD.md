@@ -80,9 +80,16 @@ every pair; non-zero exit aborts the run.
 
 Phase D.5 is strictly additive on each entry's `properties` object —
 it never rewrites decisions or rules. The schema boundary between 5.5
-and 6 is the same `analysis.schema.json` as between 5 and 5.5;
-additive writes cannot break it, so the boundary is re-validated
-defensively rather than preventively.
+and 6 is the same `analysis.schema.json` as between 5 and 5.5; additive
+primitive-only writes cannot fail in principle, so the re-validation
+is belt-and-braces rather than a true gate.
+
+**Cost note.** Phase D.5 makes one extra LLM round-trip per non-catch-all
+entry that has any declared key missing from Phase D's side-effect
+output. On a classifier that routinely forgets declared keys, this
+roughly doubles the per-entry LLM cost of a run. The cure is to tighten
+the classification prompt so D.5 rarely fires — D.5 exists as a safety
+net, not a substitute for disciplined emission in Phase D.
 
 ## Decision cells
 

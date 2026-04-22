@@ -79,9 +79,9 @@ Rules for property emission:
   undeclared keys here fragments the analytics surface and Phase D.5
   won't backfill them.
 
-The schema allows `additionalProperties: { type: ["string", "number",
-"boolean", "null"] }` on the properties bag — non-primitive values
-fail validation, which hard-fails the run.
+The schema restricts `properties` bag values to primitives — strings,
+numbers, booleans, or `null`. Arrays and nested objects fail
+validation, which hard-fails the run.
 
 ## Catch-all
 

@@ -21,16 +21,23 @@ re-stamp).
 
 ## Rule labels
 
-| ID | Rule | Decision |
-|---|---|---|
-| L1 | *(optional drop rule — candidate is not a Log call-site)* | **dropped** |
-| L2 | ... fill in ... | `<one of: "allow", "redact", "remove">` |
-| L3 | ... fill in ... | `<one of: "allow", "redact", "remove">` |
-| L4 | ... fill in ... | `<one of: "allow", "redact", "remove">` |
-| L5 | Nothing above fires. | `needs_review` (decision: `null`) |
+| ID | Rule | Decision | Properties to set |
+|---|---|---|---|
+| L1 | *(optional drop rule — candidate is not a Log call-site)* | **dropped** | *(blank — drop rules classify nothing)* |
+| L2 | ... fill in ... | `<one of: "allow", "redact", "remove">` | `framework`, `log_level`, *(+ the primary decision-impacting signal, e.g. `message_contains_pii_token`)* |
+| L3 | ... fill in ... | `<one of: "allow", "redact", "remove">` | `framework`, `log_level`, *(+ primary signal)* |
+| L4 | ... fill in ... | `<one of: "allow", "redact", "remove">` | `framework`, `log_level`, *(+ primary signal)* |
+| L5 | Nothing above fires. | `needs_review` (decision: `null`) | *(blank — catch-all emits `"properties": {}`)* |
 
 Decisions in this analyzer are drawn from: `["allow", "redact", "remove"]`.
 The catch-all rule emits `decision: null` and `analysis_status: "needs_review"`.
+
+The `Properties to set` cell is a comma-separated list of property keys
+each non-catch-all rule is responsible for populating on every entry it
+classifies. Phase D (classification) emits these keys as a side-effect
+of rule firing; Phase D.5 backfills any declared key the classifier
+did not populate. Values must be primitives (string / number / boolean
+/ null). See `docs/PATTERN-CARD.md` and `docs/superpowers/plans/2026-04-22-entity-properties.md`.
 
 ## Evaluation order
 
