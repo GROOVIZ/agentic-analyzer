@@ -27,6 +27,7 @@
         "properties": {
           "rank": { "type": "integer", "minimum": 1 },
           "strategy_type": {
+            "description": "Does NOT include `framework` — that value is reserved for step-4 framework-expansion telemetry (emitted directly by the orchestrator, never by the role-inferencer). The coverage.schema.json degradations stage carries the full 6-value enum that includes `framework`.",
             "enum": [
               "annotation",
               "call_pattern",

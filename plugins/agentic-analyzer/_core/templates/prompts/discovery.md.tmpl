@@ -238,6 +238,13 @@ for this domain.
    regardless of whether step 4 fired. It is additive: candidates from
    step 5 de-duplicate against step 4's output by `{{ID_FIELD}}`.
 
+   **Precondition check (before 5.1).** If `oracle_hits[]` from step 3
+   is empty (no oracle entry resolved to a real site), skip step 5
+   entirely and proceed to step 6 — there is nothing for the
+   role-inferencer to generalize from. Do NOT dispatch the subagent
+   with an empty brief; that would waste the call and the subagent
+   has no sensible output for zero-hit inputs.
+
    5.1 **Build the input brief.** For each hit in `oracle_hits[]`:
        - `Read` lines 1–50 of `source.file` (captured as `file_top`)
          so imports aren't clipped by the 30-line snippet window.
