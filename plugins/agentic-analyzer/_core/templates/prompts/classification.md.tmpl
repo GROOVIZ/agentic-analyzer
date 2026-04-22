@@ -65,13 +65,15 @@ Rules for property emission:
 - **Unavailable → `null`.** If the rule fires but you cannot
   determine a declared property from the snippet (e.g., the call
   site references a config value whose file Serena couldn't resolve),
-  emit `null` for that key and drop `confidence` to `medium` if the
-  key materially affected the decision, or leave `confidence`
-  unchanged otherwise.
+  emit `null` for that key. If the key materially affected the
+  decision, clamp `confidence` to at most `medium` — never raise
+  it. If the existing Serena/Context7 rule already forced
+  `confidence: "low"`, that floor wins: stay at `low`.
 - **No key declared → empty object.** The catch-all (`R<last>`)
   typically has no declared keys; its entry still emits
-  `"properties": {}` (never omit the field — schema accepts omission,
-  but Phase D.5 expects a bag to merge into). Write an empty object.
+  `"properties": {}`. Always write the field as an empty object,
+  never omit it — Phase D.5 merges into the existing bag by
+  reference, and a missing field forces an extra re-read.
 - **Do NOT invent keys.** If you find an interesting signal not
   declared by any rule, record it in `rationale` instead. Adding
   undeclared keys here fragments the analytics surface and Phase D.5
