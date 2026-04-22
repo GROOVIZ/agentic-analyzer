@@ -144,6 +144,46 @@ For each analyzer you review:
       `stage: "phase-c"` degradation naming it? Silent drops defeat
       the entire purpose of the oracle.
 
+**Role-expansion (Phase C.2 step 5)**
+
+- [ ] Does the discovery prompt actually run step 5 after step 4?
+      Grep `prompts/discovery.md` for `role-expansion` — the step 5
+      orchestration should include dispatch of `role-inferencer` and
+      the tier-gate.
+- [ ] Is the `role-inferencer` envelope validated against
+      `_core/schema/role-inferencer-envelope.schema.json` BEFORE any
+      query executes? Invalid envelopes must become a
+      `phase-c-expansion` degradation, not execution attempts.
+- [ ] Does the agent's envelope meet the evidence-first rule? Every
+      criterion has `evidence[]` citing >=1 oracle hit, and the
+      strategy's `confidence` is `medium` or lower when any criterion
+      has `ground_count < 2`.
+- [ ] Does every strategy include >=3 `negative_examples`? Missing
+      negative examples = the agent didn't think about false
+      positives; the orchestrator should reject such envelopes.
+- [ ] Does the agent refuse to re-propose already-expanded frameworks?
+      Check: `frameworks_already_expanded[]` in the brief excluded
+      from any strategy whose queries reduce to "find callers of X".
+- [ ] Only the **rank-1** strategy is eligible for autonomous
+      execution per run. Lower-ranked strategies land in
+      `uncertainties[]`, not in extra auto-executed passes.
+- [ ] Is the **200-candidate cap** enforced per run? Check the cap-
+      reached degradation fires when exceeded.
+- [ ] In interactive mode, does the orchestrator actually wait for
+      A/R/J/S? Auto-proceeding on ambiguous replies is a bug.
+- [ ] Does `AGENTIC_ANALYZER_NONINTERACTIVE=1` correctly disable the
+      interactive fallback and emit the `role-expansion-skipped`
+      degradation for medium/low-confidence strategies?
+- [ ] Are role-expansion candidates tagged
+      `"phase": "C.2-role-expansion"` in `analysis.json`? Untagged
+      candidates mean the classification stage can't distinguish
+      oracle-backstop evidence from role-expansion evidence when
+      rule-authoring needs to.
+- [ ] Does every `phase-c-expansion` degradation emitted by step 5
+      carry a `strategy_type` field and include the full
+      `role_description` in the `reason` string? Without these, the
+      audit trail is useless.
+
 ## How to write your review
 
 For each violation you find: cite the file, quote the relevant line, cite
