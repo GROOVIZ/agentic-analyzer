@@ -256,8 +256,8 @@ for this domain.
    5.2 **Dispatch `role-inferencer`.** Use the `Task` tool with
        `subagent_type: role-inferencer` and the brief above. Validate
        the returned envelope against
-       `{{ANALYZER_NAME}}-analysis/../_core/schema/role-inferencer-envelope.schema.json`
-       (resolve the plugin's core dir via `$CLAUDE_PLUGIN_ROOT`). On
+       `$CLAUDE_PLUGIN_ROOT/_core/schema/role-inferencer-envelope.schema.json`
+       via `node "$CLAUDE_PLUGIN_ROOT/_core/bin/validate.mjs" "$CLAUDE_PLUGIN_ROOT/_core/schema/role-inferencer-envelope.schema.json" <envelope-file>`. On
        validation failure OR empty `strategies[]`, append a
        `coverage.degradations[]` entry:
        ```json
@@ -271,7 +271,8 @@ for this domain.
    5.3 **Tier-gate on the rank-1 strategy.** Inspect `strategies[0].confidence`:
        - `"high"` → autonomous path (step 5.4 directly).
        - `"medium"` or `"low"`, AND the env var
-         `AGENTIC_ANALYZER_NONINTERACTIVE` is set to `1` / `true` / `yes` →
+         `AGENTIC_ANALYZER_NONINTERACTIVE` is set to `1` / `true` / `yes`
+         (case-insensitive match; lowercase the value before comparing) →
          skip path (step 5.6 telemetry only; do NOT execute queries).
        - Otherwise → interactive path (step 5.5).
 
@@ -346,10 +347,10 @@ for this domain.
        never fail, but catching a drift here prevents it from
        poisoning Phase D.
 
-   **Failure posture.** Step 5 is a discovery *enhancement*, not a
-   correctness gate. ANY failure inside step 5 emits a
-   `phase-c-expansion` degradation and continues to step 6. Never
-   abort the run for role-expansion issues.
+   5.8 **Failure posture.** Step 5 is a discovery *enhancement*, not a
+       correctness gate. ANY failure inside step 5 emits a
+       `phase-c-expansion` degradation and continues to step 6. Never
+       abort the run for role-expansion issues.
 
 6. If at least one expected entity was resolved via the backstop, include
    a short note in the run's summary so the author knows Phase A/B missed
