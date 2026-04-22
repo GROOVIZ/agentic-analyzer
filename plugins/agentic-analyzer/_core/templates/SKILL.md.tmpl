@@ -85,9 +85,26 @@ Append new candidates into
 
 ## Step 4 — Phase C: Ad-hoc + config correlation + expected-entities backstop
 
-Follow `prompts/discovery.md` §Phase C (authoritative — both the C.1
-ad-hoc/config correlation and the C.2 expected-entities backstop,
-including framework-gap detection and within-run expansion, live there).
+Follow `prompts/discovery.md` §Phase C (authoritative) end-to-end.
+Phase C has three candidate-producing sub-phases; run ALL of them
+in order and merge their outputs into `candidates.json`:
+
+- **C.1 — ad-hoc + config correlation** (optional per domain).
+- **C.2 steps 1–3 — oracle backstop search.** Read
+  `{{ANALYZER_NAME}}-analysis/expected-entities.json` if it exists
+  and resolve each entry to a Phase C candidate (tag
+  `"phase": "C.2-backstop"`).
+- **C.2 step 4 — framework-expansion.** When ≥2 oracle hits share a
+  framework not in `frameworks[]`, auto-survey the framework and
+  emit `"phase": "C.2-framework-expansion"` candidates (cap 200).
+- **C.2 step 5 — role-expansion.** Dispatch the `role-inferencer`
+  subagent to propose role-shaped search strategies; tier-gate on
+  confidence; execute and emit `"phase": "C.2-role-expansion"`
+  candidates (cap 200 per strategy, rank-1 only).
+
+All four sub-phase outputs share `candidates.json` and flow through
+Phase D classification identically — the `"phase"` tag is the only
+way downstream consumers can distinguish provenance.
 
 Write the combined candidates file to
 `{{ANALYZER_NAME}}-analysis/output/runs/<run-id>/candidates.json` and
