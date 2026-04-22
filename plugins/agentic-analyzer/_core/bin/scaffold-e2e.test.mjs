@@ -137,6 +137,61 @@ test("e2e: stamped analysis.schema.json validates a minimal entry", async () => 
   } finally { cleanup(dir); }
 });
 
+test("e2e: stamped coverage.schema.json accepts phase-c-expansion in degradations[].stage", async () => {
+  const { default: Ajv2020 } = await import("ajv/dist/2020.js");
+  const { default: addFormats } = await import("ajv-formats");
+  const { dir, out, r } = scaffold(LOGGING_CONFIG);
+  try {
+    assert.equal(r.status, 0);
+    const schema = JSON.parse(readFileSync(join(out, "schema/coverage.schema.json"), "utf8"));
+    const ajv = new Ajv2020({ strict: true, allErrors: true });
+    addFormats(ajv);
+    const validate = ajv.compile(schema);
+
+    const doc = {
+      serena_available: true,
+      context7_available: true,
+      frameworks_surveyed: [],
+      files_visited: 0,
+      symbols_resolved: 0,
+      unresolved_symbols: [],
+      degradations: [{
+        stage: "phase-c-expansion",
+        reason: "framework-expanded: com.company.util.QuietLog (12 candidates added)",
+        library: "com.company.util.QuietLog"
+      }]
+    };
+    assert.ok(validate(doc), JSON.stringify(validate.errors, null, 2));
+  } finally { cleanup(dir); }
+});
+
+test("e2e: stamped coverage.schema.json accepts phase-a-gap in degradations[].stage", async () => {
+  const { default: Ajv2020 } = await import("ajv/dist/2020.js");
+  const { default: addFormats } = await import("ajv-formats");
+  const { dir, out, r } = scaffold(LOGGING_CONFIG);
+  try {
+    assert.equal(r.status, 0);
+    const schema = JSON.parse(readFileSync(join(out, "schema/coverage.schema.json"), "utf8"));
+    const ajv = new Ajv2020({ strict: true, allErrors: true });
+    addFormats(ajv);
+    const validate = ajv.compile(schema);
+
+    const doc = {
+      serena_available: true,
+      context7_available: true,
+      frameworks_surveyed: [],
+      files_visited: 0,
+      symbols_resolved: 0,
+      unresolved_symbols: [],
+      degradations: [{
+        stage: "phase-a-gap",
+        reason: "resolved userSignupLogger via backstop; framework com.company.QuietLog not in frameworks[]"
+      }]
+    };
+    assert.ok(validate(doc), JSON.stringify(validate.errors, null, 2));
+  } finally { cleanup(dir); }
+});
+
 test("e2e: stamped overrides.schema.json validates a v2 entry with id-field=call_site_id", async () => {
   const { default: Ajv2020 } = await import("ajv/dist/2020.js");
   const { default: addFormats } = await import("ajv-formats");

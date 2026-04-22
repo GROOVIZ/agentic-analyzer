@@ -20,6 +20,28 @@ skill.
 The deployment target is fixed: **{{TARGET_CONST}}**. Record
 `target: "{{TARGET_CONST}}"` in `analysis.json`.
 
+## Variable model (READ BEFORE RUNNING ANY STEP)
+
+Bash tool calls do NOT share shell state across invocations. Treat the
+tokens in this SKILL.md as follows:
+
+- **`$SKILL_DIR`** — LLM-held placeholder: the absolute path of this
+  SKILL.md's parent directory (i.e., `.claude/skills/analyze-{{ANALYZER_NAME}}/`).
+  Resolve it once at the top of each run via
+  `node -e "process.stdout.write(require('path').dirname(require('path').resolve(process.argv[1])))" "<path-to-this-SKILL.md>"`,
+  remember it in conversation state, and substitute the resolved path
+  as a literal string into every later command. It is NOT a shell
+  variable.
+- **`$1`** — slash-command argument, substituted at load time. By the
+  time you read this prompt, it is already the literal path the caller
+  passed (or empty).
+- **`<run-id>`**, **`{{ANALYZER_NAME}}`-analysis/…** — path fragments
+  you substitute inline, not env vars.
+
+No `$`-prefixed name in this file is a live shell variable. If you see
+one inside a code block, resolve it to its concrete string before
+running the block.
+
 ## Step 1 — Preflight
 
 1. Resolve the argument `$1` to an absolute path (use
@@ -61,10 +83,11 @@ use Serena's `find_symbol` and `find_referencing_symbols`.
 Append new candidates into
 `{{ANALYZER_NAME}}-analysis/output/runs/<run-id>/_phaseB.json`.
 
-## Step 4 — Phase C: Ad-hoc + config correlation (optional)
+## Step 4 — Phase C: Ad-hoc + config correlation + expected-entities backstop
 
-If your domain has ad-hoc or config-driven candidates, follow
-`prompts/discovery.md` §Phase C. Otherwise skip.
+Follow `prompts/discovery.md` §Phase C (authoritative — both the C.1
+ad-hoc/config correlation and the C.2 expected-entities backstop,
+including framework-gap detection and within-run expansion, live there).
 
 Write the combined candidates file to
 `{{ANALYZER_NAME}}-analysis/output/runs/<run-id>/candidates.json` and
@@ -184,13 +207,13 @@ Output:
 
 ## Notes for the author
 
-`$SKILL_DIR` in the commands above refers to the directory of this
-`SKILL.md`. In a Claude Code session launched with `--add-dir` over the
-target repo, either pass the skill dir explicitly as an argument or
-hard-code the path (`.claude/skills/analyze-{{ANALYZER_NAME}}`) depending
-on your install. Cross-platform path resolution via
-`node -e "process.stdout.write(require('path').resolve(process.argv[1]))"`
-works on any environment where `node` is available.
+`$SKILL_DIR` resolution is covered by the Variable model section at the
+top. In a Claude Code session launched with `--add-dir` over the target
+repo, pass the skill dir explicitly as an argument or hard-code the
+path (`.claude/skills/analyze-{{ANALYZER_NAME}}`) depending on your
+install.
 
-Phase C is optional — if your domain has no ad-hoc or config-driven
-candidates (e.g., all entries are framework-annotation), delete Step 4.
+Phase C.1 (ad-hoc + config) is optional per domain — if your analyzer
+has no ad-hoc or config-driven candidates, that half is a no-op but
+Phase C.2 (expected-entities backstop) still runs whenever the oracle
+file exists.

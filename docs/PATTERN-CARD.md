@@ -31,20 +31,28 @@ One-page reference for authors. Full definition at
 ## Scaffolding flow
 
 ```
-config.json  ──►  /new-analyzer  ──►  .claude/skills/analyze-<name>/
-                                        ├── SKILL.md
-                                        ├── rules.md            author fills in
-                                        ├── prompts/
-                                        │   ├── discovery.md    author fills in
-                                        │   └── classification.md
-                                        ├── schema/
-                                        │   ├── analysis.schema.json
-                                        │   ├── candidates.schema.json
-                                        │   ├── coverage.schema.json
-                                        │   └── overrides.schema.json
-                                        ├── bin/                verbatim from _core
-                                        └── package.json
+/new-analyzer interview  ──►  rule-author (MODE:dispatch)  ──►  stamp  ──►  .claude/skills/analyze-<name>/
+                                                                             ├── SKILL.md
+                                                                             ├── rules.md          rule-author drafts, author iterates
+                                                                             ├── prompts/
+                                                                             │   ├── discovery.md
+                                                                             │   └── classification.md
+                                                                             ├── schema/
+                                                                             │   ├── analysis.schema.json
+                                                                             │   ├── candidates.schema.json
+                                                                             │   ├── coverage.schema.json
+                                                                             │   └── overrides.schema.json
+                                                                             ├── fixtures/         one stub per rule_id
+                                                                             │   └── <rule-id>/…
+                                                                             ├── bin/              verbatim from _core
+                                                                             └── package.json
 ```
+
+`/new-analyzer` takes no JSON input — the interview infers repo context, the
+rule-author subagent drafts `rules.md`, and `fixture-init.mjs` seeds one stub
+fixture per rule. An optional Step 9 seeds a dev-team oracle at
+`<target>/<analyzer>-analysis/expected-entities.json`, consulted by Phase C.2
+of every `/analyze-<name>` run.
 
 ## Runtime phases (scaffolded SKILL.md)
 
@@ -52,7 +60,10 @@ config.json  ──►  /new-analyzer  ──►  .claude/skills/analyze-<name>/
 1  Preflight       path, Serena, Context7, run-id, mkdir output
 2  Phase A         framework survey (Context7)            → _phaseA.json
 3  Phase B         symbolic enumeration (Serena)          → _phaseB.json
-4  Phase C         ad-hoc + config correlation (optional) → candidates.json
+4  Phase C         C.1 ad-hoc + config (optional per domain)
+                    C.2 expected-entities backstop (runs when oracle file exists,
+                        with single-run framework expansion gated ≥2 hits,
+                        capped at 200 candidates)  → candidates.json
 5  Phase D         rule classification                    → analysis.json
 6  Coverage        degradations, counters                 → coverage.json
 7  Override replay (entity_id + snippet hash) match       → analysis.json mutated
@@ -111,14 +122,19 @@ lines stripped. Whitespace-invariant, semantic-changes-visible.
 Closed enum in `coverage.schema.json`:
 
 ```
-context7          plugin unavailable
-serena            plugin unavailable
-phase-a           framework-survey issue
-phase-b           symbolic-enumeration issue
-phase-c           ad-hoc/config issue
-classification    rule-matching issue
-override-replay   overrides.json problem
-other             escape hatch
+context7            plugin unavailable
+serena              plugin unavailable
+phase-a             framework-survey issue
+phase-a-gap         oracle resolved an entity via Phase C.2; its framework is
+                    not in frameworks[]. One entry per framework cluster.
+phase-b             symbolic-enumeration issue
+phase-c             ad-hoc/config issue; also: expected entity unresolvable,
+                    malformed expected-entities.json
+phase-c-expansion   within-run framework expansion occurred or hit its
+                    200-candidate cap. Telemetry, not a failure.
+classification      rule-matching issue
+override-replay     overrides.json problem
+other               escape hatch
 ```
 
 ## Anti-patterns

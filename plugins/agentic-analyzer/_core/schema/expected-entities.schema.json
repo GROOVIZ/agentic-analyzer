@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic-analyzer/schemas/expected-entities.schema.json",
+  "title": "Expected entities list (target-repo oracle)",
+  "description": "Ground-truth entity list maintained by the dev team. Consumed by compare-entities.mjs to detect discovery gaps. Lives at <analyzer>-analysis/expected-entities.json alongside overrides.json.",
+  "type": "object",
+  "required": ["schema_version", "entities"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Symbolic name of the entity as it appears in source code. Matched against the last colon-delimited segment of each analyzer entry's id_field."
+          },
+          "expected_decision": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Optional: the decision this entity should receive. When present, the comparator reports DECISION-MISMATCH if the analyzer decides differently."
+          },
+          "file": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Optional: repo-relative path where the entity is defined. Informational only; the comparator does not currently use it for matching."
+          },
+          "source": {
+            "type": "string",
+            "description": "Optional: provenance tag — where this entry came from (e.g., \"user-comment\", \"team-spreadsheet\", \"slack-2026-04-22\"). Helpful when merging input from multiple sources."
+          },
+          "note": {
+            "type": "string",
+            "description": "Optional: free-form annotation from whoever added the entity."
+          }
+        }
+      }
+    }
+  }
+}

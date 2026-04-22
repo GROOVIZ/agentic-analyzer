@@ -350,7 +350,11 @@ test("stamp: new array/string keys fail when empty or malformed", () => {
     { key: "manifest_list",   bad: [],             expect: /manifest_list must be a non-empty array/ },
     { key: "manifest_list",   bad: [42],           expect: /manifest_list must be a non-empty array of non-empty strings/ },
     { key: "language",        bad: "Java",         expect: /language must match/ },
-    { key: "target_question", bad: "",             expect: /target_question must be a non-empty string/ }
+    { key: "target_question", bad: "",             expect: /target_question must be a non-empty string/ },
+    { key: "rule_ids",        bad: ["R1", "../../etc/passwd"], expect: /rule_ids.*must match/ },
+    { key: "rule_ids",        bad: ["rule with spaces"],       expect: /rule_ids.*must match/ },
+    { key: "rule_ids",        bad: ["has/slash"],              expect: /rule_ids.*must match/ },
+    { key: "rule_ids",        bad: ["has.dot"],                expect: /rule_ids.*must match/ }
   ];
   for (const c of cases) {
     const dir = tmp();

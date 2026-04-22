@@ -17,7 +17,8 @@ allowed-tools:
 You are the interactive scaffolder for the `agentic-analyzer` plugin. You
 turn a short user interview plus a read-only scan of a target repository
 into a populated `.claude/skills/analyze-<analyzer_name>/` directory with
-a drafted `rules.md` ready for iteration.
+a drafted `rules.md`, one stub fixture per rule under `fixtures/`, and a
+validated scaffold ready for iteration.
 
 Never ask the user to hand you a config JSON. Never invoke `stamp.mjs`
 without a complete internal config object built from the interview.
@@ -47,21 +48,47 @@ detected or chosen, apply the corresponding row.
 | php | composer.json | src | php:<rel>:<class>::<method>:<name> |
 | elixir | mix.exs | lib | ex:<rel>:<module>.<fun>:<name> |
 
+## Variable model (READ BEFORE RUNNING ANY STEP)
+
+The Bash tool spawns a fresh shell per invocation — local shell
+variables set in one Bash call do NOT survive to the next. Treat the
+following distinctly:
+
+- **Real env var (persists across every Bash call):** `$CLAUDE_PLUGIN_ROOT`,
+  set by the plugin harness. Always inline it as-is into Bash commands.
+- **LLM-held placeholders (you substitute the literal value at each
+  use):** `$TARGET_ROOT`, `$SKILL_DIR`, `$ANALYZER_NAME`, `$TMP_CONFIG`,
+  `$PLUGIN_ROOT`. Compute each once in the step that introduces it,
+  remember the value in conversation state, and substitute the
+  resolved string (not the `$NAME` token) into every later command.
+- **Slash-command arguments:** `$1` is interpolated by Claude Code at
+  load time — by the time you read this prompt it has already been
+  replaced. Do not treat `$1` as a runtime variable.
+
+If a code block below shows `$SKILL_DIR` or `$PLUGIN_ROOT`, replace it
+with the resolved path before running. `$CLAUDE_PLUGIN_ROOT` is the
+only `$`-prefixed token you can paste into Bash verbatim.
+
 ## Steps
 
 ### Step 1 — Preflight scan (silent)
 
-Resolve the argument. Use the cross-platform Node one-liner so this works
-identically on POSIX and Windows.
+Resolve the target-repo path. Run this Bash one-liner (the `${1:-.}`
+token is a slash-command argument already substituted at load time, so
+it appears as a literal path or `.`):
 
 ```
-TARGET_ROOT=$(node -e "process.stdout.write(require('path').resolve(process.argv[1]))" "${1:-.}")
-PLUGIN_ROOT="$CLAUDE_PLUGIN_ROOT"
+node -e "process.stdout.write(require('path').resolve(process.argv[1]))" "${1:-.}"
 ```
 
-If `PLUGIN_ROOT` is empty, abort: "launch Claude Code with the
-agentic-analyzer plugin installed." If `TARGET_ROOT` does not exist or
-is not readable, abort with the error.
+Capture the stdout as the **LLM-held placeholder `TARGET_ROOT`** — remember
+this value in conversation state so later steps can substitute it into
+paths. It is NOT a persistent shell variable.
+
+Verify `$CLAUDE_PLUGIN_ROOT` is non-empty (the plugin harness sets it).
+If empty, abort: "launch Claude Code with the agentic-analyzer plugin
+installed." If `TARGET_ROOT` does not exist or is not readable, abort
+with the error.
 
 Scan (read-only) using Glob/Grep only. Collect:
 
@@ -230,7 +257,7 @@ has two phases:
   envelope's `rule_ids` field is discarded. Re-extract from the table
   and pass that list to `stamp.mjs`.
 
-### Step 7 — Stamp + write rules.md + summary
+### Step 7 — Stamp + populate skill dir
 
 Build the internal config object from everything collected:
 
@@ -254,28 +281,38 @@ Build the internal config object from everything collected:
 Optional: include `identity_convention` if a non-default was chosen.
 Omit otherwise (stamp applies the default).
 
-Write the config to a temp file (e.g., a `config.json` in a tmp dir
-created by `mktemp -d` or Node equivalent). Run:
+Compute and remember two new LLM-held placeholders:
+
+- `SKILL_DIR` = `<TARGET_ROOT>/.claude/skills/analyze-<ANALYZER_NAME>`
+  (substitute the resolved `TARGET_ROOT` from Step 1 and the confirmed
+  `ANALYZER_NAME` from Step 3).
+- `TMP_CONFIG` = an absolute path to a temp file you control — create
+  the file yourself via the `Write` tool at a path like
+  `<TARGET_ROOT>/.agentic-analyzer-tmp-config.json` (delete it in the
+  last sub-step of this step). Do NOT rely on `mktemp -d` — it is
+  POSIX-only.
+
+Write the full config object (built above) to `TMP_CONFIG` via the
+`Write` tool. Then run the stamper — note that only `$CLAUDE_PLUGIN_ROOT`
+is a real env var; every other `$`-prefixed token in the command below
+must be substituted with its resolved value before you send the command:
 
 ```
-SKILL_DIR="$TARGET_ROOT/.claude/skills/analyze-$ANALYZER_NAME"
-node "$PLUGIN_ROOT/_core/bin/stamp.mjs" \
-  --config="$TMP_CONFIG" \
-  --templates="$PLUGIN_ROOT/_core/templates" \
-  --out="$SKILL_DIR"
+node "$CLAUDE_PLUGIN_ROOT/_core/bin/stamp.mjs" \
+  --config="<TMP_CONFIG>" \
+  --templates="$CLAUDE_PLUGIN_ROOT/_core/templates" \
+  --out="<SKILL_DIR>"
 ```
 
-On non-zero exit: delete the tmp config, surface stderr, abort. The
+On non-zero exit: delete `TMP_CONFIG`, surface stderr, abort. The
 stamper cleans up its own staging dir on failure.
 
-After stamp succeeds, write `rules.md` directly using the `Write` tool:
-
-```
-Write to $SKILL_DIR/rules.md with the resolved rules_md content.
-```
+After stamp succeeds, write `rules.md` directly using the `Write`
+tool at `<SKILL_DIR>/rules.md` with the resolved `rules_md` content
+from Step 6.
 
 Copy runtime utilities cross-platform via Node (avoids POSIX-only
-`cp`/`mkdir -p`):
+`cp`/`mkdir -p`). Substitute `<SKILL_DIR>` before running:
 
 ```
 node -e "
@@ -288,12 +325,162 @@ for (const f of ['_args.mjs', 'validate.mjs', 'normalize.mjs',
                  'migrate-overrides-v1-v2.mjs', 'fixture-init.mjs']) {
   fs.copyFileSync(path.join(src, f), path.join(dst, f));
 }
-" "$PLUGIN_ROOT/_core/bin" "$SKILL_DIR/bin"
+" "$CLAUDE_PLUGIN_ROOT/_core/bin" "<SKILL_DIR>/bin"
 ```
 
-Delete the tmp config.
+Delete `TMP_CONFIG`.
 
-Print to the session:
+### Step 8 — Generate fixture scaffolds
+
+For each `rule_id` in the final rule list (extracted from the `rules_md`
+table in Step 6), create a fixture skeleton under
+`<SKILL_DIR>/fixtures/<rule-id>/` using `fixture-init.mjs`. These are
+**stub** fixtures — the directory structure, `expected.json` with TODO
+markers, `.gitignore`, and README are produced; the author fills in the
+concrete `target/*` source files and replaces the TODO values before the
+fixture passes the comparator.
+
+Pick positive vs. negative from the rule's Decision column in the
+`rules_md` table:
+
+- Decision is `dropped` → `--negative` (the rule drops a candidate;
+  `forbidden[]` is seeded).
+- Anything else → `--positive` (the rule emits a decision;
+  `expected[]` is seeded).
+
+For every rule_id (substitute `<SKILL_DIR>`, `<rule-id>`, and
+`<id_field>` before running):
+
+```
+node "$CLAUDE_PLUGIN_ROOT/_core/bin/fixture-init.mjs" \
+  --dir="<SKILL_DIR>/fixtures/<rule-id>" \
+  --id-field="<id_field>" \
+  [--positive|--negative]
+```
+
+Track which rule_ids succeeded and which failed (by stderr or exit
+code) as you loop. Continue the loop even if an invocation fails —
+the scaffold is already materialized by Step 7, so stopping mid-loop
+leaves the skill dir in a worse state (some fixtures present, others
+missing, no summary).
+
+If ANY fixture-init invocation failed, after the loop completes:
+
+- Print which rule_ids succeeded and which failed, with each failed
+  rule's stderr.
+- Tell the user: "Re-run the failed ones manually with
+  `node "$CLAUDE_PLUGIN_ROOT/_core/bin/fixture-init.mjs" --dir=<SKILL_DIR>/fixtures/<rule-id> --id-field=<id_field> [--positive|--negative] --force`
+  once you've resolved the cause."
+- Proceed to Step 9 and Step 10 so Step 10's validator runs — it will
+  flag the missing fixture(s) via `--rule-ids` coverage, giving the
+  user a single authoritative list of what still needs fixing.
+
+Do NOT claim the command "aborted." Step 7 succeeded; the skill dir
+exists; the only honest framing is "partial fixture coverage —
+validator will enumerate what's still missing."
+
+### Step 9 — Seed expected-entities (optional)
+
+Ask the user whether the dev team maintains a ground-truth list of
+known {{ENTITY_NAME_HUMAN}}s. This is the oracle that Phase C.2 of
+`/analyze-$ANALYZER_NAME` will consult to backstop discovery.
+
+Prompt:
+
+> Does the dev team have a list of known <entity_name_human>s to seed
+> as the expected-entities oracle? You can:
+>   - paste a list (one name per line, or a free-form sentence),
+>   - give a file path (absolute or repo-relative),
+>   - or reply `skip` to continue without seeding.
+
+If the user replies `skip` (or an equivalent "no"/"none"): proceed
+directly to Step 10. Do NOT create any expected-entities file.
+
+Otherwise, classify the input:
+
+- If `$INPUT` resolves to a readable file on disk, `Read` its
+  contents. Set `SOURCE_HINT="file:<relpath>"`.
+- Otherwise, use the input string verbatim. Set
+  `SOURCE_HINT="bootstrap:<today YYYY-MM-DD>"`.
+
+Dispatch the `entity-list-ingestor` subagent via the `Task` tool:
+
+```
+MODE: dispatch
+You were invoked by /new-analyzer during bootstrap. Do NOT ask the user
+any questions. Return ONLY the JSON envelope specified in your agent
+definition.
+
+INPUTS:
+- raw_input:      <the text from above, verbatim>
+- source_hint:    "<SOURCE_HINT>"
+- analyzer_name:  "$ANALYZER_NAME"
+- decision_enum:  <from Step 5, as JSON array>
+```
+
+Parse the returned envelope. If parsing fails or `entities[]` is
+malformed, surface the raw output and ask the user whether to retry
+with a clarified input or `skip`. Do NOT silently drop bad output.
+
+Show the user the parsed `entities[]` + `uncertainties[]` as a
+fenced block. Ask for confirmation or corrections. Apply corrections
+by editing the in-memory array directly; do NOT re-dispatch the
+subagent.
+
+On confirmation, build the canonical document:
+
+```json
+{
+  "schema_version": "1.0.0",
+  "entities": [ ... confirmed entries ... ]
+}
+```
+
+Write it to
+`$TARGET_ROOT/$ANALYZER_NAME-analysis/expected-entities.json`,
+creating the directory first if needed. Then validate:
+
+```
+node "$CLAUDE_PLUGIN_ROOT/_core/bin/validate.mjs" \
+  "$CLAUDE_PLUGIN_ROOT/_core/schema/expected-entities.schema.json" \
+  "$TARGET_ROOT/$ANALYZER_NAME-analysis/expected-entities.json"
+```
+
+On non-zero exit: surface stderr, delete the written file, abort.
+A corrupt oracle is worse than no oracle.
+
+Record for the summary how many entities were seeded.
+
+### Step 10 — Validate scaffold (quality gate)
+
+Run the scaffold validator against `$SKILL_DIR`, passing the same
+`rule_ids` list so fixture coverage is enforced. This is a hard gate: it
+catches partial stamps, missing bin/ copies, unresolved template tokens,
+malformed `SKILL.md` frontmatter, and any rule that did not get a
+fixture skeleton in Step 8.
+
+```
+node "$CLAUDE_PLUGIN_ROOT/_core/bin/validate-scaffold.mjs" \
+  "$SKILL_DIR" \
+  --rule-ids="<comma-joined rule_ids>"
+```
+
+If exit is non-zero: surface the validator's stderr verbatim, then print:
+
+```
+/new-analyzer scaffold validation FAILED
+
+Skill dir: $SKILL_DIR
+The directory exists but is not a usable skill. Review the issues above,
+fix them, then re-run the validator manually:
+
+  node "$CLAUDE_PLUGIN_ROOT/_core/bin/validate-scaffold.mjs" "$SKILL_DIR" \
+    --rule-ids="<comma-joined rule_ids>"
+```
+
+Abort the command. Do NOT proceed to the success summary.
+
+If exit is 0, print to the session:
 
 ```
 /new-analyzer complete
@@ -307,22 +494,34 @@ Silent defaults applied:
   identity_convention:   <from lookup table or user override>
   phase_c_hint:          <default>
 
-YOU HAVE ZERO FIXTURES.
-Invariant #11 (fixture harness) will fail until you run
-/fixture-author. Do that next.
+Fixtures scaffolded: <N> stub fixture(s) under $SKILL_DIR/fixtures/
+  Each has a TODO-marked expected.json and an empty target/.
+  Complete the TODOs and populate target/ before running the analyzer.
+  Fixtures are unproven — run /analyze-$ANALYZER_NAME against each
+  fixture's target/ to verify the expected rule actually fires.
+
+Expected-entities oracle: <M> name(s) seeded
+  Path: $TARGET_ROOT/$ANALYZER_NAME-analysis/expected-entities.json
+  (omit this whole section if Step 9 was skipped — no file written.)
+  Phase C.2 of /analyze-$ANALYZER_NAME will consult this file to
+  backstop discovery. Extend it later via /expected-entities.
 
 Other next steps:
   1. cd "$SKILL_DIR" && npm install
   2. Review rules.md — the rule-author drafted it, but rules
      benefit from author iteration.
-  3. Run /schema-author only if rules need domain-specific fields.
-  4. Run /analyze-$ANALYZER_NAME <repo-path> to try it.
+  3. Review each fixtures/<rule-id>/README.md and fill in target/.
+  4. Run /schema-author only if rules need domain-specific fields.
+  5. Run /analyze-$ANALYZER_NAME <repo-path> to try it.
 ```
 
 ## Hard rules
 
 - Never overwrite an existing skill dir. If `$SKILL_DIR` exists, abort.
-- Never write outside `$SKILL_DIR`.
+- Never write outside `$SKILL_DIR`, with one explicit exception:
+  Step 9 may create `$TARGET_ROOT/$ANALYZER_NAME-analysis/` and write
+  `expected-entities.json` there. Any other write to the target repo
+  is a bug.
 - Never proceed to `stamp.mjs` without a complete, validated config
   object built from the interview. If the user aborts mid-interview,
   exit cleanly with no scaffolded output.
@@ -330,3 +529,12 @@ Other next steps:
 - Do not re-dispatch `rule-author` to handle uncertainties; resolve
   them via inline edits to the drafted `rules_md` in the main
   conversation.
+- Never print the success summary (Step 10) if the scaffold validator
+  exits non-zero. A partial scaffold is not a success.
+- If any fixture-init invocation in Step 8 fails, continue the loop,
+  then report per-rule success/failure at the end, and still proceed
+  through Steps 9–10 so the validator enumerates the remaining gaps.
+  Never claim "aborted" when Step 7's scaffold is already materialized.
+- If Step 9 writes an `expected-entities.json` that fails schema
+  validation, delete the file before aborting. A corrupt oracle is
+  worse than no oracle.

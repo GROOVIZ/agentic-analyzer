@@ -83,6 +83,42 @@ For each analyzer you review:
 - [ ] When overrides are orphaned (no matching live entry), are they
       preserved, not deleted?
 
+**Oracle / Phase C.2 backstop (when `<analyzer>-analysis/expected-entities.json` exists)**
+
+- [ ] Does the discovery prompt actually consult the oracle? Grep
+      `prompts/discovery.md` for `expected-entities.json` — a Phase C.2
+      subsection should describe the read + per-name search loop.
+- [ ] Is the backstop match strictly name-exact (`endsWith(":" + name)`)
+      and NOT substring? A loose matcher silently normalizes gaps into
+      hits and defeats the oracle.
+- [ ] For each backstop hit, does the prompt tell the agent to inspect
+      the site's imports / call chain to identify the framework?
+- [ ] Are `phase-a-gap` degradations **clustered per framework**, not
+      one per entity? Five missed log calls in the same
+      `com.company.util.QuietLog` should produce ONE entry with a
+      `names[]` array and a count — not five near-duplicates.
+- [ ] Does the cluster gate explicitly skip single-hit clusters and
+      `library: "unknown"` clusters? Auto-expanding on one data point
+      or an unidentifiable framework creates false signals.
+- [ ] Does within-run framework expansion have a **hard candidate cap**
+      (target: 200 per framework)? A sample of three should not trigger
+      an unbounded framework survey.
+- [ ] When the cap is hit, is a `phase-c-expansion` degradation emitted
+      with `reason: "framework-expansion-cap-reached: <library> …"`?
+- [ ] Is expansion **non-recursive**? If an expanded framework surfaces
+      yet another gap, it should emit a `phase-a-gap` but NOT expand
+      transitively in the same run.
+- [ ] Is a `phase-a-gap` degradation emitted **regardless** of whether
+      expansion ran? Expansion is a safety net; the persistence signal
+      to the author is always "add the framework to `frameworks[]`."
+- [ ] Are candidates produced by expansion tagged (`"phase":
+      "C.2-framework-expansion"`)? Untagged candidates mean the
+      classification stage can't distinguish "surveyed" from
+      "auto-expanded" evidence when rule-authoring needs to.
+- [ ] Every backstop-name that resolves to zero hits: is there a
+      `stage: "phase-c"` degradation naming it? Silent drops defeat
+      the entire purpose of the oracle.
+
 ## How to write your review
 
 For each violation you find: cite the file, quote the relevant line, cite

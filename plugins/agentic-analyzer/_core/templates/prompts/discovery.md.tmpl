@@ -22,6 +22,14 @@ walks the target repo's build manifests, confirms which of these are in scope
 for the current repo, and pulls their {{ENTITY_NAME_HUMAN}} surfaces from
 Context7.
 
+**If `[{{FRAMEWORK_LIST}}]` is empty** (the author declared no frameworks
+for this domain), skip steps 3–4 entirely — the fast-path regex
+`{{FRAMEWORK_REGEX}}` stamps to `/(?!)/i` which never matches, and there
+is nothing to fetch from Context7. Still perform step 1 (record the
+manifests you found in `coverage.frameworks_surveyed[]` with
+`surfaces_count: 0`) and proceed to Phase B, which will rely on the
+oracle/backstop (Phase C.2) or purely-symbolic discovery.
+
 1. List every build manifest in the target repo matching
    `[{{MANIFEST_LIST}}]`, restricted to source roots `[{{SOURCE_ROOTS}}]`.
 2. Extract all declared dependencies from those manifests.
@@ -84,7 +92,11 @@ The ID must be stable across runs for the same source construct. For this
 analyzer: `{{IDENTITY_CONVENTION}}`. The override engine relies on this
 convention; changing it invalidates all existing overrides.
 
-## Phase C — Ad-hoc + config correlation
+## Phase C — Ad-hoc + config correlation, expected-entities backstop
+
+Phase C has two parts. Run both in order.
+
+### Phase C.1 — Ad-hoc + config correlation (optional per domain)
 
 {{PHASE_C_HINT}}
 
@@ -101,3 +113,130 @@ Merge by identity: if a Phase C candidate has the same `{{ID_FIELD}}` as a
 Phase B candidate, keep Phase B and discard the Phase C duplicate (but
 preserve the Phase C `config_refs[]` on the surviving entry if you model
 that).
+
+### Phase C.2 — Expected-entities backstop (always runs when the file exists)
+
+The dev team may maintain a ground-truth list of known entity names at
+`{{ANALYZER_NAME}}-analysis/expected-entities.json` (maintained by the
+`/expected-entities` command, seeded optionally during `/new-analyzer`
+bootstrap). This phase uses that list to backstop discovery: every name
+the team asserts must be locatable by discovery; anything we cannot find
+is a hard coverage signal for the author to iterate on.
+
+Run this sub-phase whenever the file exists, even if Phase C.1 is a no-op
+for this domain.
+
+1. Attempt to read
+   `{{ANALYZER_NAME}}-analysis/expected-entities.json`. If the file does
+   not exist, skip the rest of Phase C.2 — there is no oracle.
+2. Parse the JSON. If parsing fails, or the top-level shape is not
+   `{ schema_version, entities: [...] }`, append a `coverage.degradations[]`
+   entry (`stage: "phase-c"`, `reason: "expected-entities.json malformed: <msg>"`)
+   and skip the rest.
+3. For each `entities[i].name`:
+   a. If any candidate already accumulated from Phase A / B / C.1 has an
+      `{{ID_FIELD}}` ending with `":<name>"`, the backstop is satisfied for
+      this name — continue.
+   b. Otherwise, do a targeted search across `source_roots`:
+      - If Serena is available, call
+        `mcp__plugin_serena_serena__find_symbol` with `name_path = "<name>"`
+        and `substring_matching = false`. Also try
+        `mcp__plugin_serena_serena__search_for_pattern` with the bare
+        identifier bounded by `\b`.
+      - Otherwise, `Grep` for `\b<name>\b` scoped to `[{{SOURCE_ROOTS}}]`.
+   c. For each hit, construct a Phase C candidate using the Phase B
+      candidate shape (`{{ID_FIELD}}`, `name`, `description`, `source`
+      with file/line window/snippet + hashes). Mark
+      `"phase": "C.2-backstop"` on each so downstream consumers know the
+      origin. Merge by identity with existing candidates.
+   d. **Phase-A gap detection.** For each backstop-resolved site, look at
+      the snippet's imports and the enclosing call chain to identify the
+      framework/library providing the entity (e.g., an import of
+      `com.company.util.QuietLog`, a `LoggerFactory.getLogger` call, a
+      builder FQN). If that framework/library is **not** already in the
+      Phase A `frameworks[]` array, that is a Phase A gap: the survey
+      missed a surface the team knows about. Record it in
+      `coverage.degradations[]` as:
+      ```json
+      {
+        "stage": "phase-a-gap",
+        "reason": "resolved <name> via backstop; <framework-or-library> not in frameworks[]",
+        "library": "<framework-or-library>",
+        "file": "<relative-path>"
+      }
+      ```
+      If several backstop hits share the same framework, cluster them
+      into one entry with an additional `"names"` array and a human-
+      readable `reason` that lists the count (e.g., `"resolved 3
+      entities via backstop; com.company.util.QuietLog not in
+      frameworks[]"`). One clustered entry per framework is cleaner than
+      one per entity.
+      If you cannot identify the framework from the site (raw stdlib
+      call, ambiguous imports), emit the entry with
+      `"library": "unknown"` and a shortened `reason`; the author can
+      still use the file path as a jumping-off point.
+   e. If the search returns zero hits, append a `coverage.degradations[]`
+      entry (`stage: "phase-c"`, `reason: "expected entity not found: <name>"`).
+      Do not fabricate a candidate.
+
+4. **Within-run framework expansion.** After step 3 completes, group the
+   backstop hits by the framework/library identified in step 3.d. For
+   each framework-cluster with **≥2** hits that is NOT in Phase A's
+   `frameworks[]`, auto-expand discovery to cover the full framework
+   within this run.
+
+   - **Gate.** Skip expansion when the cluster has a single hit, or when
+     the framework is `"unknown"` (insufficient confidence). Both cases
+     still surface a `phase-a-gap` degradation; they just don't trigger
+     in-run expansion.
+   - **Survey.** If Context7 is available, fetch the framework's docs
+     via Context7 exactly as in Phase A step 4, extracting any
+     {{ENTITY_NAME_HUMAN}} surfaces. If Context7 is unavailable, skip
+     the docs survey and proceed to local enumeration.
+   - **Enumerate.** Use Serena's `find_symbol` / `find_referencing_symbols`
+     on the framework's FQN(s) exactly as in Phase B. For each hit,
+     construct a candidate using the Phase B candidate shape. Mark
+     `"phase": "C.2-framework-expansion"` to keep the origin traceable.
+   - **Cap.** Limit each framework-expansion to **at most 200 new
+     candidates**. If the enumeration produces more, stop at 200 and
+     append a `coverage.degradations[]` entry:
+     ```json
+     {
+       "stage": "phase-c-expansion",
+       "reason": "framework-expansion-cap-reached: <library> hit 200-candidate cap",
+       "library": "<library>"
+     }
+     ```
+     The author must add the library to `frameworks[]` to get full
+     coverage — the cap is a guard against a small sample triggering
+     an unbounded survey.
+   - **Telemetry.** For every framework that was expanded (successfully,
+     under the cap), append a `coverage.degradations[]` entry:
+     ```json
+     {
+       "stage": "phase-c-expansion",
+       "reason": "framework-expanded: <library> (<N> candidates added)",
+       "library": "<library>"
+     }
+     ```
+     This is NOT a failure — it is a telemetry marker so authors can see,
+     over time, how often discovery is leaning on expansion instead of
+     a properly-maintained `frameworks[]`.
+   - **No recursion.** If expansion surfaces yet another framework gap,
+     emit a `phase-a-gap` entry for it but do NOT expand it transitively.
+     One level of automatic expansion per run, no deeper.
+   - **Persistence reminder.** The original `phase-a-gap` degradation
+     remains in `coverage.degradations[]` regardless of whether
+     expansion ran. The signal to the author is always: add the
+     framework to `frameworks[]` to make this permanent. Expansion is
+     a safety net, not a substitute for configuration.
+
+5. If at least one expected entity was resolved via the backstop, include
+   a short note in the run's summary so the author knows Phase A/B missed
+   them. The `phase-a-gap` degradations specifically are the most
+   actionable signal: each one points at a framework the author can
+   add to `frameworks[]` to close the gap at its source for future runs.
+
+This sub-phase is a safety net, not a substitute for a good Phase A/B.
+Names resolved only by the backstop are a signal that the framework
+survey or symbolic enumeration missed a surface worth adding.

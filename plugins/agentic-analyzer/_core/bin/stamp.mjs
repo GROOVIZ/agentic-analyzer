@@ -99,6 +99,13 @@ if (!Array.isArray(config.rule_ids) || config.rule_ids.length === 0
     || !config.rule_ids.every(v => typeof v === "string" && v.length > 0)) {
   stderr.write("rule_ids must be a non-empty array of non-empty strings\n"); exit(1);
 }
+// Format gate: rule_ids flow unescaped into filesystem paths
+// (fixtures/<rule-id>/) and template output, so allow only a conservative
+// identifier alphabet. Rejects path traversal, whitespace, and shell
+// metacharacters.
+if (!config.rule_ids.every(v => /^[A-Za-z0-9_-]+$/.test(v))) {
+  stderr.write("rule_ids entries must match /^[A-Za-z0-9_-]+$/\n"); exit(1);
+}
 if (typeof config.language !== "string" || !/^[a-z][a-z0-9+-]*$/.test(config.language)) {
   stderr.write("language must match /^[a-z][a-z0-9+-]*$/\n"); exit(1);
 }
