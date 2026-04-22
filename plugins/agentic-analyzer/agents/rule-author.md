@@ -82,10 +82,20 @@ Exactly these sections, in order:
 3. One-sentence intro stating "Apply rules in evaluation order; first rule
    that fires decides."
 4. Valid rule IDs — prose sentence listing the stamped enum.
-5. Rule labels — a markdown table with columns `ID | Rule | Decision`.
-   One row per entry in `rule_ids`. Decisions are drawn from
-   `decision_enum`, or the word `dropped` for a drop rule, or
-   `needs_review` for the catch-all.
+5. Rule labels — a markdown table with columns
+   `ID | Rule | Decision | Properties to set`. One row per entry in
+   `rule_ids`. Decisions are drawn from `decision_enum`, or the word
+   `dropped` for a drop rule, or `needs_review` for the catch-all.
+
+   The `Properties to set` cell is a comma-separated list of property
+   keys this rule is responsible for populating on each entry it
+   classifies. Keys are free-form but follow `snake_case` by
+   convention; they may include analytics signals that DO NOT
+   contribute to the rule's trigger (e.g., a `log_level` property is
+   populated even when the rule's trigger is unrelated to log level,
+   because population-level analytics wants it). Keep the list short
+   (3-7 keys per rule). Leave the cell empty (`—` or blank) for the
+   catch-all.
 6. Evaluation order — numbered list describing order (not numerical).
 7. Confidence — three-bullet section for high / medium / low.
 
@@ -101,6 +111,17 @@ When inputs don't contradict it, default to:
 
 Deviate only with a matching `uncertainties[]` entry that justifies the
 deviation.
+
+**Properties column defaults.** When inputs don't contradict them:
+
+- Every non-catch-all rule declares at least one property. If you
+  cannot name one, the rule is probably too specific.
+- Include `framework` (or `provider`, `library`) as a standard key
+  whenever `frameworks[]` is non-empty — useful for analytics.
+- Include the rule's primary decision-impacting signal as a key
+  (e.g., `message_contains_pii_token` for a logging PII rule, or
+  `size_bounded` for a cache-size rule).
+- The catch-all leaves `Properties to set` blank.
 
 ### Uncertainty honesty
 
