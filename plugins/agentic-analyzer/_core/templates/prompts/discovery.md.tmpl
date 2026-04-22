@@ -231,11 +231,135 @@ for this domain.
      framework to `frameworks[]` to make this permanent. Expansion is
      a safety net, not a substitute for configuration.
 
-5. If at least one expected entity was resolved via the backstop, include
+5. **Role-based expansion.** After step 4 (framework-expansion), dispatch
+   the `role-inferencer` subagent to propose search strategies for
+   entities that share the oracle's *role* rather than its framework.
+   This sub-phase runs whenever `oracle_hits[]` from step 3 is non-empty,
+   regardless of whether step 4 fired. It is additive: candidates from
+   step 5 de-duplicate against step 4's output by `{{ID_FIELD}}`.
+
+   5.1 **Build the input brief.** For each hit in `oracle_hits[]`:
+       - `Read` lines 1–50 of `source.file` (captured as `file_top`)
+         so imports aren't clipped by the 30-line snippet window.
+       - Call `mcp__plugin_serena_serena__get_symbols_overview` on the
+         file to fill `enclosing_class`, `enclosing_method`, and
+         `enclosing_method_signature`.
+       Build the brief with: oracle_hits[] (enriched as above),
+       `analyzer_name: "{{ANALYZER_NAME}}"`,
+       `entity_name_human: "{{ENTITY_NAME_HUMAN}}"`,
+       `language: "{{LANGUAGE}}"`,
+       `frameworks: [{{FRAMEWORK_LIST}}]`,
+       `source_roots: [{{SOURCE_ROOTS}}]`,
+       `frameworks_already_expanded: <libraries step 4 just surveyed>`,
+       `autonomous_threshold: { max_estimated_hits: 200, min_ground_count_per_criterion: 2 }`.
+
+   5.2 **Dispatch `role-inferencer`.** Use the `Task` tool with
+       `subagent_type: role-inferencer` and the brief above. Validate
+       the returned envelope against
+       `{{ANALYZER_NAME}}-analysis/../_core/schema/role-inferencer-envelope.schema.json`
+       (resolve the plugin's core dir via `$CLAUDE_PLUGIN_ROOT`). On
+       validation failure OR empty `strategies[]`, append a
+       `coverage.degradations[]` entry:
+       ```json
+       {
+         "stage": "phase-c-expansion",
+         "reason": "role-inferencer returned no usable strategies"
+       }
+       ```
+       and proceed to step 6. Do NOT retry; do NOT abort the run.
+
+   5.3 **Tier-gate on the rank-1 strategy.** Inspect `strategies[0].confidence`:
+       - `"high"` → autonomous path (step 5.4 directly).
+       - `"medium"` or `"low"`, AND the env var
+         `AGENTIC_ANALYZER_NONINTERACTIVE` is set to `1` / `true` / `yes` →
+         skip path (step 5.6 telemetry only; do NOT execute queries).
+       - Otherwise → interactive path (step 5.5).
+
+   5.4 **Execute the strategy (autonomous, or after interactive
+       acceptance).** For each `serena_queries[i]`:
+       - If Serena is available, dispatch via the specified tool
+         (`mcp__plugin_serena_serena__find_symbol`,
+         `mcp__plugin_serena_serena__search_for_pattern`,
+         `mcp__plugin_serena_serena__find_referencing_symbols`).
+       - If Serena is unavailable, use `grep_fallback_patterns[i]` via
+         the `Grep` tool scoped to `source_roots`.
+       Apply `exclude_patterns` — drop any hit whose path matches a
+       glob. De-duplicate against already-accumulated candidates by
+       `{{ID_FIELD}}`. For each retained hit, construct a Phase C
+       candidate using the Phase B candidate shape and tag
+       `"phase": "C.2-role-expansion"`.
+
+       **Cap: 200 new candidates.** If the 200th is reached before
+       queries exhaust, halt and emit the cap-reached telemetry
+       (step 5.6).
+
+   5.5 **Interactive approval** (when tier-gate routes here). Print
+       to the session:
+       ```
+       [Phase C.2 step 5] Role-expansion proposal (confidence: <level>):
+
+         Role: "<role_description>"
+         Evidence:
+           - <criterion 1> (grounded in <N> oracle hits: <hit names>)
+           - <criterion 2> (grounded in <N> oracle hits: <hit names>)
+         Queries:
+           - <serena_query 1 serialized>
+           - <serena_query 2 serialized>
+         Excludes: <joined exclude_patterns>
+         Estimated new candidates: <estimated_hit_count>
+
+         Accept (A) / Refine (R) / Reject (J) / Skip (S)?
+       ```
+
+       Handle the user's reply:
+       - `A` / `accept` / `yes` / `ok` → go to step 5.4.
+       - `R` / `refine` → accept free-form refinement input (e.g.,
+         "narrow to `src/core/`", "drop criterion 2", "change regex
+         to X"). Apply inline to the in-memory strategy. Re-print
+         the proposal and re-prompt.
+       - `J` / `S` / `reject` / `skip` → emit rejected-telemetry
+         (step 5.6); skip step 5.4.
+       - Unrecognized reply → re-prompt with
+         `[Phase C.2 step 5] Reply ambiguous — please choose A/R/J/S.`
+
+   5.6 **Telemetry (unconditional).** Emit exactly one
+       `coverage.degradations[]` entry for whichever path ran:
+
+       | Outcome | `reason:` prefix |
+       |---|---|
+       | Auto-executed | `role-expansion: <role_description> (<N> candidates added)` |
+       | Interactive-accepted | `role-expansion (user-approved): <role_description> (<N> candidates added)` |
+       | Interactive-rejected | `role-expansion-rejected: <role_description> (user declined)` |
+       | Skipped (non-interactive + low conf) | `role-expansion-skipped: <role_description> (non-interactive mode, confidence <= medium)` |
+       | Cap-reached | `role-expansion-cap-reached: <role_description> (200 candidates, more available)` |
+       | No strategy produced | `role-expansion: no strategy produced` (step 5.2 fallback) |
+
+       Include `strategy_type: <strategies[0].strategy_type>` on the
+       entry. Omit `library` (role-expansion is not library-based).
+
+   5.7 **Re-validate `candidates.json`.** After any new candidates
+       were appended in step 5.4, re-run:
+       ```
+       node $SKILL_DIR/bin/validate.mjs $SKILL_DIR/schema/candidates.schema.json {{ANALYZER_NAME}}-analysis/output/runs/<run-id>/candidates.json
+       ```
+       Defensive. New candidates use the Phase B shape; this should
+       never fail, but catching a drift here prevents it from
+       poisoning Phase D.
+
+   **Failure posture.** Step 5 is a discovery *enhancement*, not a
+   correctness gate. ANY failure inside step 5 emits a
+   `phase-c-expansion` degradation and continues to step 6. Never
+   abort the run for role-expansion issues.
+
+6. If at least one expected entity was resolved via the backstop, include
    a short note in the run's summary so the author knows Phase A/B missed
    them. The `phase-a-gap` degradations specifically are the most
    actionable signal: each one points at a framework the author can
    add to `frameworks[]` to close the gap at its source for future runs.
+   Role-expansion outcomes (step 5) land as `phase-c-expansion`
+   degradations — treat a high count of those as a signal the
+   oracle's samples are doing a lot of work and the ruleset may need
+   additional rules rather than relying on backstop inference.
 
 This sub-phase is a safety net, not a substitute for a good Phase A/B.
 Names resolved only by the backstop are a signal that the framework
