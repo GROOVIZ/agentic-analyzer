@@ -137,6 +137,95 @@ test("e2e: stamped analysis.schema.json validates a minimal entry", async () => 
   } finally { cleanup(dir); }
 });
 
+test("e2e: stamped analysis.schema.json accepts entries with a properties bag of primitives", async () => {
+  const { default: Ajv2020 } = await import("ajv/dist/2020.js");
+  const { default: addFormats } = await import("ajv-formats");
+  const { dir, out, r } = scaffold(LOGGING_CONFIG);
+  try {
+    assert.equal(r.status, 0);
+    const schema = JSON.parse(readFileSync(join(out, "schema/analysis.schema.json"), "utf8"));
+    const ajv = new Ajv2020({ strict: true, allErrors: true });
+    addFormats(ajv);
+    const validate = ajv.compile(schema);
+
+    const doc = {
+      schema_version: "1.0.0",
+      ruleset_version: "2026-04-22",
+      run_id: "r1",
+      target: "pii-regulated",
+      repository: { path: "/repo", commit: "abc" },
+      coverage_ref: "./coverage.json",
+      entries: [{
+        call_site_id: "Foo.java:12",
+        name: "log.info at Foo.java:12",
+        source: {
+          file: "Foo.java", line_start: 12, line_end: 14,
+          snippet: "...", snippet_sha256: "a".repeat(64), snippet_normalized_sha256: "a".repeat(64)
+        },
+        decision: "allow",
+        decision_source: "rule",
+        rule_fired: "L1",
+        rationale: "no PII token in message",
+        confidence: "high",
+        analysis_status: "complete",
+        properties: {
+          framework: "slf4j",
+          log_level: "INFO",
+          message_contains_pii_token: false,
+          fallback_unavailable: null,
+          enclosing_class_line: 10
+        }
+      }]
+    };
+    assert.ok(validate(doc), JSON.stringify(validate.errors, null, 2));
+  } finally { cleanup(dir); }
+});
+
+test("e2e: stamped analysis.schema.json rejects non-primitive property values", async () => {
+  const { default: Ajv2020 } = await import("ajv/dist/2020.js");
+  const { default: addFormats } = await import("ajv-formats");
+  const { dir, out, r } = scaffold(LOGGING_CONFIG);
+  try {
+    assert.equal(r.status, 0);
+    const schema = JSON.parse(readFileSync(join(out, "schema/analysis.schema.json"), "utf8"));
+    const ajv = new Ajv2020({ strict: true, allErrors: true });
+    addFormats(ajv);
+    const validate = ajv.compile(schema);
+
+    const baseEntry = {
+      call_site_id: "Foo.java:12",
+      name: "log.info at Foo.java:12",
+      source: {
+        file: "Foo.java", line_start: 12, line_end: 14,
+        snippet: "...", snippet_sha256: "a".repeat(64), snippet_normalized_sha256: "a".repeat(64)
+      },
+      decision: "allow",
+      decision_source: "rule",
+      rule_fired: "L1",
+      rationale: "no PII token",
+      confidence: "high",
+      analysis_status: "complete"
+    };
+    const baseDoc = {
+      schema_version: "1.0.0",
+      ruleset_version: "2026-04-22",
+      run_id: "r1",
+      target: "pii-regulated",
+      repository: { path: "/repo", commit: "abc" },
+      coverage_ref: "./coverage.json",
+      entries: []
+    };
+
+    for (const bad of [
+      { array_value: ["x"] },
+      { nested_object: { a: 1 } }
+    ]) {
+      const doc = { ...baseDoc, entries: [{ ...baseEntry, properties: bad }] };
+      assert.ok(!validate(doc), `expected rejection for ${JSON.stringify(bad)}`);
+    }
+  } finally { cleanup(dir); }
+});
+
 test("e2e: stamped coverage.schema.json accepts phase-c-expansion in degradations[].stage", async () => {
   const { default: Ajv2020 } = await import("ajv/dist/2020.js");
   const { default: addFormats } = await import("ajv-formats");

@@ -54,7 +54,19 @@
           "rule_fired": { "enum": [{{RULE_IDS_WITH_NONE}}] },
           "rationale": { "type": "string" },
           "confidence": { "enum": ["high", "medium", "low"] },
-          "analysis_status": { "enum": ["complete", "partial", "needs_review"] }
+          "analysis_status": { "enum": ["complete", "partial", "needs_review"] },
+          "properties": {
+            "type": "object",
+            "description": "Open bag of per-entity evidence/analytics properties. Keys are analyzer-specific; values are restricted to primitives. Populated by the rule that fired (side-effect) and consolidated by Phase D.5.",
+            "additionalProperties": {
+              "oneOf": [
+                { "type": "string" },
+                { "type": "number" },
+                { "type": "boolean" },
+                { "type": "null" }
+              ]
+            }
+          }
         }
       }
     }
