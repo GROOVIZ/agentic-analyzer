@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Phase C.2 step 5: role-expansion.** The expected-entities
+  backstop now extends beyond same-framework similarity. After
+  framework-expansion (step 4), a new `role-inferencer` subagent
+  (dispatch-only) analyses the oracle-resolved sites and proposes
+  one or more search strategies with per-criterion evidence,
+  self-assessed confidence, and mandatory negative examples.
+  SKILL.md tier-gates the strategies: autonomous execution when
+  confidence is `high`, interactive Accept/Refine/Reject/Skip when
+  `medium` or `low`, skip path when
+  `AGENTIC_ANALYZER_NONINTERACTIVE=1` (CI compatibility). Candidates
+  are tagged `"phase": "C.2-role-expansion"` and capped at 200 per
+  run. Rank-1 strategy only; lower-ranked strategies become
+  `uncertainties[]` the author can promote manually.
+- **Role-inferencer envelope schema** at
+  `_core/schema/role-inferencer-envelope.schema.json`. Shared,
+  non-templated. Validates the subagent's output before execution:
+  rejects envelopes missing `strategies[]`, criteria without
+  `evidence[]`, unknown `strategy_type` values, or fewer than 3
+  `negative_examples`. Invalid envelopes become a
+  `phase-c-expansion` degradation rather than execution attempts.
+- **`strategy_type` field** on `coverage.degradations[]` entries
+  (optional, enum: `framework` / `annotation` / `call_pattern` /
+  `name_pattern` / `path_pattern` / `combination`). Lets consumers
+  filter degradations by expansion flavour without parsing the
+  `reason` prose.
+- **`AGENTIC_ANALYZER_NONINTERACTIVE` env var.** When set to `1` /
+  `true` / `yes` (case-insensitive), low-confidence role-expansion
+  strategies are skipped with a `role-expansion-skipped`
+  degradation instead of prompting for user approval. Makes
+  `/analyze-<name>` CI-safe.
+
+### Documentation
+
+- `agents/analyzer-reviewer.md` extended with an 11-item
+  Role-expansion checklist section.
+- `docs/PATTERN-CARD.md` runtime phases block now enumerates step 4
+  (framework-expansion) and step 5 (role-expansion) separately;
+  degradation stages block documents the new `strategy_type` field.
+
 ## [0.3.0] — 2026-04-22
 
 ### Added
